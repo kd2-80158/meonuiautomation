@@ -1,0 +1,15 @@
+# Local credentials and tokens
+credentials.json
+src/test/resources/config/credentials.json
+config/config.json
+tokens/
+
+# Generated build and test artifacts
+target/
+test-output/
+screenshots/
+
+# IDE-local metadata
+.classpath
+.project
+.settings/

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suite name="Meon UI automation" parallel="none" verbose="1">
+
+  <test name="Admin sign-in">
+    <classes>
+      <class name="com.ui.tests.AdminSignInTest"/>
+      <class name="com.ui.admin.tests.SignInTest"/>
+    </classes>
+  </test>
+
+  <test name="Meon website">
+    <classes>
+      <class name="com.ui.meonwebsite.tests.HomePageTest"/>
+      <class name="com.ui.meonwebsite.tests.HomePageTestPW"/>
+      <class name="com.ui.meonwebsite.tests.RequestDemoTest"/>
+    </classes>
+  </test>
+
+  <test name="API Manager">
+    <classes>
+      <class name="com.ui.product.apimanager.tests.LoginPageTest_APIManager"/>
+    </classes>
+  </test>
+
+  <test name="Corporate REKYC">
+    <classes>
+      <class name="com.ui.product.rekyc.tests.RekycCorporateWorkflowTest"/>
+    </classes>
+  </test>
+
+  <test name="Cloud corporate REKYC">
+    <packages>
+      <package name="com.ui.cloud.rekyc.corporateworkflow"/>
+    </packages>
+  </test>
+
+  <test name="Customer onboarding workflows">
+    <classes>
+      <class name="com.ui.tests.workflow1.DemoCapitalWorkflow_Individual"/>
+      <class name="com.ui.tests.workflow2.MandotSecuritiesWorkflow_CKYC_FLOW"/>
+    </classes>
+  </test>
+
+</suite>
