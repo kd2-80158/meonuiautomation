@@ -1,7 +1,4 @@
-# Local credentials and tokens
-credentials.json
-src/test/resources/config/credentials.json
-config/config.json
+# Local tokens
 tokens/
 
 # Generated build and test artifacts
