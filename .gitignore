@@ -10,3 +10,24 @@ screenshots/
 .classpath
 .project
 .settings/
+
+# Google OAuth credentials
+credentials.json
+**/credentials.json
+
+# Sensitive configuration
+/config/config.json
+
+# OAuth tokens
+tokens/
+
+# Generated logs and reports
+logs/
+target/
+test-output/
+screenshots/
+
+# Environment variables
+.env
+.env.*
+!.env.example

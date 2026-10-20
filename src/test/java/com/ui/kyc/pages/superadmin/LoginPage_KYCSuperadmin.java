@@ -78,4 +78,30 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
 		sendtext.sendKeys(input);
 		return this;
 	}
+
+	public LoginPage_KYCSuperadmin waitForPasswordPage() {
+
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(40));
+
+		logger.info("Waiting for Google password page");
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(PASSWORD_INPUTBOX));
+
+		logger.info("Google password input is visible");
+
+		return this;
+	}
+
+	public LoginPage_KYCSuperadmin waitForEmailPage() {
+
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
+
+		logger.info("Waiting for Google email page");
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(EMAIL_INPUTBOX));
+
+		logger.info("Google email input is visible");
+
+		return this;
+	}
 }
