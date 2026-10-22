@@ -1,9 +1,12 @@
 package com.ui.kyc.pages.superadmin;
 
 import java.time.Duration;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -53,10 +56,21 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
 		default:
 			throw new IllegalArgumentException("Invalid error message locator key: " + text);
 		}
-		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
-		WebElement element = wait.until(ExpectedConditions.elementToBeClickable(locator));
 		logger.info("Clicking on button: " + text);
-		element.click();
+
+		/*
+		 * The Google sign-in control is a div rendered by Google's identity widget.
+		 * Firefox headless can report that wrapper as clickable, then block in the
+		 * native WebDriver click command while the widget handles the redirect. A
+		 * DOM click dispatches the widget's handler without that driver-level stall.
+		 */
+		if ("googlesignin".equalsIgnoreCase(text)) {
+			clickGoogleSignIn(locator);
+		} else {
+			WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
+			WebElement element = wait.until(ExpectedConditions.elementToBeClickable(locator));
+			element.click();
+		}
 		return this;
 	}
 
