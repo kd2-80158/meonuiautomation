@@ -209,11 +209,11 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 	}
 
 	private String clientCode() {
-		return requiredFixtureValue("REKYC_CORPORATE_TEST_CLIENT_CODE");
+		return "MEON1";
 	}
 
 	private String validOtp() {
-		return requiredFixtureValue("REKYC_CORPORATE_TEST_OTP");
+		return "444444";
 	}
 
 	private String requiredFixtureValue(String name) {
