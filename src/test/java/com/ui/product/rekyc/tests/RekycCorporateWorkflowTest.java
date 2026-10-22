@@ -178,7 +178,6 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 			"e2e" })
 	public void verifyEditFunctionalityForNameInPersonalDetailsSection() {
 		corporateRekycUAT.enterClientCode("MEON1").clickOnSendOtpButton().enterOtp("444444").clickOnVerifyButton();
-
-		personalPage.clickOnButton("editname_ad");
+		personalPage.clickOnButton("editdoi_pd");
 	}
 }

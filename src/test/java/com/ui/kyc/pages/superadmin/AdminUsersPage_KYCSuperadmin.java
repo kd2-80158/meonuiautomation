@@ -22,7 +22,7 @@ public class AdminUsersPage_KYCSuperadmin extends BrowserUtility {
 		super(driver);
 	}
 
-	private static final By ADDUSER_BUTTON = By.xpath("//div[@id='add-user-container']");
+	private static final By ADDUSER_BUTTON = By.xpath("//div[@class='add-user-container']");
 	private static final By HEADING_ADMINUSERPAGE = By.xpath("//div[@class='company-text']");
 	// dialog box locators
 	private static final By HEADING_USERDIALOGBOX = By.id("overlay_add_user_text");

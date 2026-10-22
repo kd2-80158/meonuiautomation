@@ -80,6 +80,28 @@ public class LoginPage_CorporateRekycUAT extends BrowserUtility {
 		}
 	}
 
+	/** Waits for either a successful route change or a visible server-side login error. */
+	public boolean waitForPersonalPageOrLoginError() {
+		new WebDriverWait(getDriver(), Duration.ofSeconds(30)).until(driver ->
+				driver.getCurrentUrl().contains("/Personal/page") || hasVisibleLoginMessage());
+		return getDriver().getCurrentUrl().contains("/Personal/page");
+	}
+
+	public String getVisibleLoginMessage() {
+		for (By locator : new By[] { ERRORMESSAGE_CLIENTCODE, ERRORMESSAGE_OTP }) {
+			for (WebElement message : getDriver().findElements(locator)) {
+				if (message.isDisplayed() && !message.getText().trim().isEmpty()) {
+					return message.getText().trim();
+				}
+			}
+		}
+		return "No visible login error";
+	}
+
+	private boolean hasVisibleLoginMessage() {
+		return !"No visible login error".equals(getVisibleLoginMessage());
+	}
+
 	public String getErrorMessage(String text) {
 
 		By locator;

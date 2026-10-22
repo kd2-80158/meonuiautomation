@@ -29,7 +29,8 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
 	private static final By GACCOUNT_SELECTION = By.xpath("(//div[@class='VV3oRb YZVTmd SmR8'])[3]");
 	private static final By EMAIL_INPUTBOX = By.xpath("//input[@id='identifierId']");
 	private static final By PASSWORD_INPUTBOX = By.xpath("//input[@type='password']");
-	private static final By NEXT_BUTTON = By.xpath("(//button[@jsname='LgbsSe'])[2]");
+	private static final By EMAIL_NEXT_BUTTON = By.id("identifierNext");
+	private static final By PASSWORD_NEXT_BUTTON = By.id("passwordNext");
 
 	public LoginPage_KYCSuperadmin clickOnButton(String text) {
 		By locator;
@@ -49,8 +50,8 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
 			locator = PASSWORD_INPUTBOX;
 			break;
 		case "nextbtn":
-			locator = NEXT_BUTTON;
-			break;
+			clickGoogleNext();
+			return this;
 
 		default:
 			throw new IllegalArgumentException("Invalid error message locator key: " + text);
@@ -73,27 +74,16 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
 		return this;
 	}
 
-	private void clickGoogleSignIn(By locator) {
+	private void clickGoogleNext() {
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(20));
-		WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
-		Set<String> windowsBeforeClick = new HashSet<>(getDriver().getWindowHandles());
+		By locator = hasVisiblePasswordField() ? PASSWORD_NEXT_BUTTON : EMAIL_NEXT_BUTTON;
+		WebElement element = wait.until(ExpectedConditions.elementToBeClickable(locator));
+		logger.info("Clicking Google {} Next button", locator.equals(PASSWORD_NEXT_BUTTON) ? "password" : "email");
+		element.click();
+	}
 
-		((JavascriptExecutor) getDriver()).executeScript(
-				"arguments[0].scrollIntoView({block: 'center', inline: 'center'});", element);
-		wait.until(ExpectedConditions.elementToBeClickable(element));
-		((JavascriptExecutor) getDriver()).executeScript("arguments[0].click();", element);
-
-		// Google may redirect in the current tab or open a separate authentication tab.
-		wait.until(driver -> driver.getWindowHandles().size() > windowsBeforeClick.size()
-				|| driver.getCurrentUrl().contains("accounts.google.com")
-				|| !driver.findElements(EMAIL_INPUTBOX).isEmpty());
-
-		for (String window : getDriver().getWindowHandles()) {
-			if (!windowsBeforeClick.contains(window)) {
-				getDriver().switchTo().window(window);
-				break;
-			}
-		}
+	private boolean hasVisiblePasswordField() {
+		return getDriver().findElements(PASSWORD_INPUTBOX).stream().anyMatch(WebElement::isDisplayed);
 	}
 
 	public LoginPage_KYCSuperadmin writeService(String text, String input) {
@@ -113,6 +103,32 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
 		WebElement sendtext = wait.until(ExpectedConditions.elementToBeClickable(locator));
 		sendtext.clear();
 		sendtext.sendKeys(input);
+		return this;
+	}
+
+	public LoginPage_KYCSuperadmin waitForPasswordPage() {
+
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(40));
+
+		logger.info("Waiting for Google password page");
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(PASSWORD_INPUTBOX));
+
+		logger.info("Google password input is visible");
+
+		return this;
+	}
+
+	public LoginPage_KYCSuperadmin waitForEmailPage() {
+
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
+
+		logger.info("Waiting for Google email page");
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(EMAIL_INPUTBOX));
+
+		logger.info("Google email input is visible");
+
 		return this;
 	}
 }

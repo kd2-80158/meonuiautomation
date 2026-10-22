@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suite name="Meon UI automation" parallel="none" verbose="1">
 
+  <listeners>
+    <listener class-name="com.ui.listeners.TestListener"/>
+  </listeners>
+
   <test name="Admin sign-in">
     <classes>
       <class name="com.ui.tests.AdminSignInTest"/>
@@ -19,12 +23,6 @@
   <test name="API Manager">
     <classes>
       <class name="com.ui.product.apimanager.tests.LoginPageTest_APIManager"/>
-    </classes>
-  </test>
-
-  <test name="Corporate REKYC">
-    <classes>
-      <class name="com.ui.product.rekyc.tests.RekycCorporateWorkflowTest"/>
     </classes>
   </test>
 

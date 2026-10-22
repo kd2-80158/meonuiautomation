@@ -10,3 +10,27 @@ screenshots/
 .classpath
 .project
 .settings/
+
+# Google OAuth credentials
+credentials.json
+**/credentials.json
+
+# Sensitive configuration
+/config/config.json
+
+# OAuth tokens
+tokens/
+
+# Generated logs and reports
+logs/
+target/
+test-output/
+screenshots/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Local KYC journey fixtures can contain identity data, OTPs and provider tokens.
+src/test/resources/mandot-kyc-fixture*.json

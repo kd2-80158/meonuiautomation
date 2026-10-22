@@ -1,0 +1,5 @@
+# Supply a reset, ACTIVE UAT fixture through the scheduler environment.
+# Maven system properties with these same names are supported as an alternative.
+# Do not commit or log real customer identifiers or OTPs.
+REKYC_CORPORATE_TEST_CLIENT_CODE=
+REKYC_CORPORATE_TEST_OTP=
