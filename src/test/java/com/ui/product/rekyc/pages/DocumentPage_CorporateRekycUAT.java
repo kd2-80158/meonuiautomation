@@ -22,6 +22,7 @@ public class DocumentPage_CorporateRekycUAT extends BrowserUtility {
 	private static final By NEXT_BUTTON = By.id("next_btn");
 	private static final By PREVIOUS_BUTTON = By.id("previous_btn");
 
+
 	public DocumentPage_CorporateRekycUAT(WebDriver driver) {
 		super(driver);
 	}
@@ -86,4 +87,5 @@ public class DocumentPage_CorporateRekycUAT extends BrowserUtility {
 			((JavascriptExecutor) getDriver()).executeScript("arguments[0].click();", element);
 		}
 	}
+	
 }
