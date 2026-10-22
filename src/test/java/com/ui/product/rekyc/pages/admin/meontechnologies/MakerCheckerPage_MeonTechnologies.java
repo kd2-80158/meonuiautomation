@@ -11,6 +11,9 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementClickInterceptedException;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -26,6 +29,7 @@ import com.ui.utilities.LoggerUtility;
 public class MakerCheckerPage_MeonTechnologies extends BrowserUtility {
 
 	Logger logger = LoggerUtility.getLogger(this.getClass());
+	private Path lastVerifiedPdf;
 
 	public MakerCheckerPage_MeonTechnologies(WebDriver driver) {
 		super(driver);
@@ -42,6 +46,13 @@ public class MakerCheckerPage_MeonTechnologies extends BrowserUtility {
 
 	private static final By GENERATEPDFBTN_MAKERCHECKER = By
 			.xpath("//button[text()='Generate PDF' and @class='btn btn-info']");
+
+	private static final By MAKER_CHECKER_MENU = By.cssSelector("a[href='#general-pages']");
+
+	private static final By MAKER_CHECKER_SUBMENU = By.cssSelector("#general-pages.collapse.show");
+
+	private static final By VERIFY_BUTTON = By
+			.cssSelector("#general-pages button.workflowInnerBtn[data-type='verify']");
 
 	public MakerCheckerPage_MeonTechnologies clickOn(String text) {
 		By locator;
@@ -76,23 +87,34 @@ public class MakerCheckerPage_MeonTechnologies extends BrowserUtility {
 	}
 
 	public MakerCheckerPage_MeonTechnologies selectWorkflow(String workflow) {
-		WebElement dropdown = new WebDriverWait(getDriver(), Duration.ofSeconds(15))
-				.until(ExpectedConditions.elementToBeClickable(WORKFLOW_DROPDOWN));
-		new Select(dropdown).selectByVisibleText(workflow);
+		WebDriverWait selectionWait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
+		selectionWait.pollingEvery(Duration.ofMillis(250));
+		selectionWait.until(driver -> {
+			WebElement dropdown = ExpectedConditions.elementToBeClickable(WORKFLOW_DROPDOWN).apply(driver);
+			if (dropdown == null || !isUnobstructed(driver, dropdown)) {
+				return false;
+			}
+			try {
+				Select select = new Select(dropdown);
+				select.selectByVisibleText(workflow);
+				return workflow.equals(select.getFirstSelectedOption().getText().trim());
+			} catch (ElementClickInterceptedException | StaleElementReferenceException e) {
+				return false;
+			}
+		});
 		return this;
 	}
 
 	public MakerCheckerPage_MeonTechnologies clickGeneratePdfForClient(String clientCode) {
 		By generatePdfButton = By.xpath(
 				"//tr[td[normalize-space()='" + clientCode + "']]" + "//button[normalize-space()='Generate PDF']");
-		WebElement button = new WebDriverWait(getDriver(), Duration.ofSeconds(20))
-				.until(ExpectedConditions.elementToBeClickable(generatePdfButton));
-		button.click();
+		clickWhenUnobstructed(generatePdfButton);
 		return this;
 	}
 
 	public boolean isPdfDownloadedAndOpenable(String downloadDirectory, String expectedFileNamePart,
 			long downloadStartTime) {
+		lastVerifiedPdf = null;
 
 		Path downloadPath = Paths.get(downloadDirectory);
 
@@ -158,6 +180,7 @@ public class MakerCheckerPage_MeonTechnologies extends BrowserUtility {
 				}
 
 				logger.info("PDF opened successfully. Pages: {}, Size: {} bytes", pageCount, Files.size(pdfFile));
+				lastVerifiedPdf = pdfFile;
 
 				return true;
 			}
@@ -166,6 +189,94 @@ public class MakerCheckerPage_MeonTechnologies extends BrowserUtility {
 			logger.error("PDF download or validation failed: {}", e.getMessage());
 			return false;
 		}
+	}
+
+	public Path getLastVerifiedPdf() {
+		return lastVerifiedPdf;
+	}
+
+	public MakerCheckerPage_MeonTechnologies openMakerCheckerVerify() {
+
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
+
+		By menuLocator = MAKER_CHECKER_MENU;
+
+		By submenuLocator = MAKER_CHECKER_SUBMENU;
+
+		By verifyLocator = VERIFY_BUTTON;
+
+		logger.info("Current URL: {}", getDriver().getCurrentUrl());
+		logger.info("Page title: {}", getDriver().getTitle());
+
+		int menuCount = getDriver().findElements(menuLocator).size();
+
+		logger.info("Maker & Checker locator matches: {}", menuCount);
+
+		if (menuCount == 0) {
+			throw new IllegalStateException(
+					"Maker & Checker menu missing from current tab. " + "URL: " + getDriver().getCurrentUrl());
+		}
+
+		WebElement menu = getDriver().findElement(menuLocator);
+
+		logger.info("Menu displayed: {}", menu.isDisplayed());
+		logger.info("Menu enabled: {}", menu.isEnabled());
+		logger.info("Menu expanded: {}", menu.getAttribute("aria-expanded"));
+
+		if (!menu.isDisplayed()) {
+			throw new IllegalStateException(
+					"Maker & Checker exists but sidebar is hidden. " + "Check responsive/offcanvas navigation.");
+		}
+
+		if (!"true".equalsIgnoreCase(menu.getAttribute("aria-expanded"))) {
+			clickWhenUnobstructed(menuLocator);
+		}
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(submenuLocator));
+
+		logger.info("Maker & Checker expanded successfully");
+
+		clickWhenUnobstructed(verifyLocator);
+
+		logger.info("Verify clicked successfully");
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(WORKFLOW_DROPDOWN));
+
+		logger.info("Workflow dropdown visible");
+
+		return this;
+	}
+
+	private void clickWhenUnobstructed(By locator) {
+		WebDriverWait clickWait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
+		clickWait.pollingEvery(Duration.ofMillis(250));
+		clickWait.until(driver -> {
+			WebElement element = ExpectedConditions.elementToBeClickable(locator).apply(driver);
+			if (element == null) {
+				return false;
+			}
+			((JavascriptExecutor) driver).executeScript(
+					"arguments[0].scrollIntoView({block: 'center', inline: 'center'});", element);
+
+			if (!isUnobstructed(driver, element)) {
+				return false;
+			}
+
+			try {
+				element.click();
+				return true;
+			} catch (ElementClickInterceptedException | StaleElementReferenceException e) {
+				return false;
+			}
+		});
+	}
+
+	private boolean isUnobstructed(WebDriver driver, WebElement element) {
+		return Boolean.TRUE.equals(((JavascriptExecutor) driver).executeScript(
+				"const r = arguments[0].getBoundingClientRect();"
+						+ "const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);"
+						+ "return top === arguments[0] || arguments[0].contains(top);",
+				element));
 	}
 
 }

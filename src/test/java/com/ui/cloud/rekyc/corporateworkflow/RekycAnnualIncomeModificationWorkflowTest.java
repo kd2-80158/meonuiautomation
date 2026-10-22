@@ -1,9 +1,10 @@
-
 package com.ui.cloud.rekyc.corporateworkflow;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
@@ -24,6 +25,7 @@ import com.ui.product.rekyc.pages.admin.meontechnologies.MakerCheckerPage_MeonTe
 import com.ui.product.rekyc.pages.superadmin.DashboardPage_REKYCSuperadmin;
 import com.ui.product.rekyc.pages.superadmin.LoginPage_REKYCSuperadmin;
 import com.ui.utilities.JSONUtility;
+import com.ui.utilities.JourneyEvidence;
 import com.ui.utilities.LoggerUtility;
 
 @Listeners({ com.ui.listeners.TestListener.class })
@@ -50,7 +52,7 @@ public class RekycAnnualIncomeModificationWorkflowTest extends BaseTest {
 	private EsignPage_AnnualIncomeModificationRekycUAT esignPage;
 
 	private DashboardPage_REKYCSuperadmin dashboardPage;
-	
+
 	private MakerCheckerPage_MeonTechnologies makerCheckerPage;
 
 	private WebDriverWait wait;
@@ -232,41 +234,75 @@ public class RekycAnnualIncomeModificationWorkflowTest extends BaseTest {
 	@Test(description = "tc_11 - Verify generated PDF is downloaded and readable", priority = 11, groups = { "critical",
 			"functional" })
 	public void verifyDocumentGenerated() {
+		JourneyEvidence evidence = new JourneyEvidence(driver, "verifyDocumentGenerated");
+		try {
 
 		// Step 1: Superadmin login
 		driver.get(SUPERADMIN_LOGIN_URL);
+		evidence.capture("Superadmin login page");
 
 		loginAndOpenSuperadminPage();
 
-		// Step 2: Search and visit MEON Admin
-		dashboardPage.clickOn("search").writeService("search", "meon").clickOn("visitadmin");
+		wait.until(ExpectedConditions.urlContains("/v1/company/companies"));
 
-		// Step 3: Initialize Maker-Checker page
+		logger.info("Superadmin login successful");
+		evidence.capture("Superadmin login successful");
+
+		// Step 2: Search MEON
+		dashboardPage.clickOn("search").writeService("search", "meon");
+		evidence.capture("MEON company search");
+
+		// Capture current browser tabs BEFORE clicking Visit Admin
+		String superadminHandle = driver.getWindowHandle();
+
+		Set<String> existingHandles = new HashSet<>(driver.getWindowHandles());
+
+		logger.info("Tabs before Visit Admin: {}", existingHandles.size());
+
+		// Step 3: Open MEON Admin
+		dashboardPage.clickOn("visitadmin");
+
+		// Step 4: Switch to the actual MEON Admin tab
+		switchToMeonAdminTab(superadminHandle, existingHandles);
+
+		logger.info("Current URL after switch: {}", driver.getCurrentUrl());
+		evidence.capture("MEON admin dashboard opened");
+
+		// Step 5: Maker & Checker
 		makerCheckerPage = new MakerCheckerPage_MeonTechnologies(driver);
 
-		// Step 4: Navigate to Maker-Checker > Verify
-		makerCheckerPage.clickOn("verify_btn_mc");
+		makerCheckerPage.openMakerCheckerVerify();
 
-		// Step 5: Select Annual Income Modification workflow
+		logger.info("Maker & Checker Verify opened");
+		evidence.capture("Maker and Checker Verify opened");
+
+		// Step 6: Select Annual Income Modification
 		makerCheckerPage.selectWorkflow("annual_income_modification");
 
-		// Step 6: Set download location
+		logger.info("Annual Income Modification selected");
+		evidence.capture("Annual Income Modification selected");
+
+		// Step 7: Generate PDF
 		String downloadDirectory = System.getProperty("user.home") + "/Downloads";
 
-		// Step 7: Record download start time
 		long downloadStartTime = System.currentTimeMillis();
 
-		// Step 8: Click Generate PDF for the required client
 		makerCheckerPage.clickGeneratePdfForClient("MEON1");
 
-		// Step 9: Verify generated PDF
+		// Step 8: Verify generated PDF
 		boolean pdfVerified = makerCheckerPage.isPdfDownloadedAndOpenable(downloadDirectory,
 				"AnnualIncomeModificationPDF", downloadStartTime);
+		if (pdfVerified) {
+			evidence.capture("PDF download completed");
+			evidence.attachPdfPreview(makerCheckerPage.getLastVerifiedPdf());
+		}
 
-		softAssert.assertTrue(pdfVerified,
-				"Generated Annual Income Modification PDF " + "should download and open successfully");
+		softAssert.assertTrue(pdfVerified, "Generated PDF should download and open successfully");
 
 		softAssert.assertAll();
+		} finally {
+			evidence.finish();
+		}
 	}
 
 	@Test(description = "Verify Annual Income dropdown options", priority = 3, groups = { "functional" })
@@ -332,6 +368,48 @@ public class RekycAnnualIncomeModificationWorkflowTest extends BaseTest {
 				"Selected annual income should be 10-25 Lac");
 
 		othersPage.clickOnNextButton();
+	}
+
+	private void switchToMeonAdminTab(String superadminHandle, Set<String> existingHandles) {
+
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(45));
+
+		By makerCheckerMenu = By.cssSelector("a[href='#general-pages']");
+
+		String adminHandle = wait.until(d -> {
+
+			for (String handle : d.getWindowHandles()) {
+
+				// Inspect only the original tab or newly opened tabs.
+				if (!handle.equals(superadminHandle) && existingHandles.contains(handle)) {
+					continue;
+				}
+
+				d.switchTo().window(handle);
+
+				String url = d.getCurrentUrl();
+
+				logger.info("Checking browser tab: {}", url);
+
+				boolean isTenantAdmin = url.startsWith("https://rekycuat.meon.co.in/v1/company/")
+						&& !url.contains("/companies") && !url.contains("/superadmin");
+
+				boolean hasMakerChecker = !d.findElements(makerCheckerMenu).isEmpty();
+
+				if (isTenantAdmin && hasMakerChecker) {
+					return handle;
+				}
+			}
+
+			return null;
+		});
+
+		driver.switchTo().window(adminHandle);
+		driver.manage().window().maximize();
+
+		logger.info("MEON Admin tab selected: {}", driver.getCurrentUrl());
+
+		wait.until(ExpectedConditions.visibilityOfElementLocated(makerCheckerMenu));
 	}
 
 	private void loginAndOpenSuperadminPage() {
