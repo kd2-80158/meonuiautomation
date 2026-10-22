@@ -70,32 +70,10 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
         element.click();
     }
 
-<<<<<<< HEAD
     private boolean hasVisiblePasswordField() {
-        return getDriver().findElements(PASSWORD_INPUTBOX).stream().anyMatch(WebElement::isDisplayed);
+        return getDriver().findElements(PASSWORD_INPUTBOX).stream()
+                .anyMatch(WebElement::isDisplayed);
     }
-=======
-		default:
-			throw new IllegalArgumentException("Invalid error message locator key: " + text);
-		}
-		logger.info("Clicking on button: " + text);
-
-		/*
-		 * The Google sign-in control is a div rendered by Google's identity widget.
-		 * Firefox headless can report that wrapper as clickable, then block in the
-		 * native WebDriver click command while the widget handles the redirect. A
-		 * DOM click dispatches the widget's handler without that driver-level stall.
-		 */
-		if ("googlesignin".equalsIgnoreCase(text)) {
-			clickGoogleSignIn(locator);
-		} else {
-			WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
-			WebElement element = wait.until(ExpectedConditions.elementToBeClickable(locator));
-			element.click();
-		}
-		return this;
-	}
->>>>>>> origin/tester
 
     public LoginPage_KYCSuperadmin writeService(String text, String input) {
         By locator;
