@@ -1,0 +1,16 @@
+# UAT-only test fixture. Do not commit real customer data, OTPs, or credentials.
+# Supply these only through the secure runtime configuration for an isolated test identity.
+MANDOT_KYC_E2E_ENABLED=false
+# Preferred: an absolute path to the locally stored JSON supplied for this run.
+# Do not place that JSON under source control.
+MANDOT_KYC_FIXTURE_FILE=
+MANDOT_KYC_TEST_MOBILE=
+MANDOT_KYC_DEPENDENCY=Self
+MANDOT_KYC_MANUAL_WAIT_SECONDS=300
+
+# TDL-002 / session-token security regression. Both checks are opt-in.
+MANDOT_SECURITY_REGRESSION_ENABLED=false
+MANDOT_STATIC_PAGE_REGRESSION_ENABLED=false
+# UAT journey only. Override only with another approved non-production KYC URL.
+MANDOT_SECURITY_BASE_URL=https://kycuat.meon.co.in/mandotsecurities/individual_rm_anmol
+MANDOT_JOURNEY_COOKIE_NAME=journey_token

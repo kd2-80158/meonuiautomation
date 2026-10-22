@@ -31,3 +31,6 @@ screenshots/
 .env
 .env.*
 !.env.example
+
+# Local KYC journey fixtures can contain identity data, OTPs and provider tokens.
+src/test/resources/mandot-kyc-fixture*.json

@@ -1,6 +1,8 @@
 package com.ui.base;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -28,7 +30,7 @@ public class BaseTest {
 			return;
 		}
 
-		String browser = System.getProperty("browser", "chrome");
+		String browser = System.getProperty("browser", "firefox");
 
 		boolean isHeadless = Boolean.parseBoolean(System.getProperty("isHeadless", "false"));
 
@@ -36,11 +38,31 @@ public class BaseTest {
 
 			ChromeOptions options = new ChromeOptions();
 
+			Map<String, Object> chromePreferences = new HashMap<>();
+			chromePreferences.put("signin.allowed", false);
+			chromePreferences.put("signin.allowed_on_next_startup", false);
+			chromePreferences.put("signin.interception_enabled", false);
+			chromePreferences.put("credentials_enable_service", false);
+			chromePreferences.put("profile.password_manager_enabled", false);
+			options.setExperimentalOption("prefs", chromePreferences);
+
 			options.addArguments("--disable-notifications");
 
 			options.addArguments("--disable-popup-blocking");
 
 			options.addArguments("--disable-extensions");
+
+			// Keep WebDriver's disposable profile from presenting Chrome's native
+			// first-run/sign-in UI over the application during local runs.
+			options.addArguments("--no-first-run");
+
+			options.addArguments("--no-default-browser-check");
+
+			options.addArguments("--disable-sync");
+
+			options.addArguments("--disallow-signin");
+
+			options.addArguments("--disable-features=ChromeSignin,ChromeSigninIntercept");
 
 			options.addArguments("--window-size=1920,1080");
 

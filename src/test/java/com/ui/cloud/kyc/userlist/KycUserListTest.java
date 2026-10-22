@@ -82,7 +82,7 @@ public class KycUserListTest extends BaseTest {
 		logger.info("Clicking password Next");
 
 		loginPage.clickOnButton("nextbtn");
-		dashboardPage.writeOnSearchBar("demo capital").clickOnSearchButton_KYCSuperadmin();
+		dashboardPage.writeOnSearchBar("DEMO CAPITAL MARKET").clickOnSearchButton_KYCSuperadmin();
 		boolean isCompany = dashboardPage.isTextVisible();
 		dashboardPage.clickOnButton("visitadmin_button").switchToNewAdminTab();
 		if (isCompany)

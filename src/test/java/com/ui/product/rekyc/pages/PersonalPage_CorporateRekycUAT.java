@@ -4,6 +4,8 @@ import java.time.Duration;
 
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementClickInterceptedException;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -237,10 +239,7 @@ public class PersonalPage_CorporateRekycUAT extends BrowserUtility {
 		default:
 			throw new IllegalArgumentException("Invalid button locator key: " + text);
 		}
-		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
-		WebElement element = wait.until(ExpectedConditions.elementToBeClickable(locator));
-		logger.info("Clicking on button: " + text);
-		element.click();
+		click(locator, text);
 		return this;
 	}
 
@@ -544,10 +543,19 @@ public class PersonalPage_CorporateRekycUAT extends BrowserUtility {
 	}
 
 	private void click(By locator, String description) {
-		WebElement element = new WebDriverWait(getDriver(), Duration.ofSeconds(15))
-				.until(ExpectedConditions.elementToBeClickable(locator));
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
+		wait.until(ExpectedConditions.invisibilityOfElementLocated(LOADING_OVERLAY));
+		WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+		((JavascriptExecutor) getDriver()).executeScript(
+				"arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", element);
+		wait.until(ExpectedConditions.elementToBeClickable(element));
 		logger.info("Clicking on " + description);
-		element.click();
+		try {
+			element.click();
+		} catch (ElementClickInterceptedException intercepted) {
+			wait.until(ExpectedConditions.invisibilityOfElementLocated(LOADING_OVERLAY));
+			((JavascriptExecutor) getDriver()).executeScript("arguments[0].click();", element);
+		}
 	}
 
 	public PersonalPage_CorporateRekycUAT writeService(String text, String input) {

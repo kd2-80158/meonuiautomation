@@ -26,7 +26,8 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
 	private static final By GACCOUNT_SELECTION = By.xpath("(//div[@class='VV3oRb YZVTmd SmR8'])[3]");
 	private static final By EMAIL_INPUTBOX = By.xpath("//input[@id='identifierId']");
 	private static final By PASSWORD_INPUTBOX = By.xpath("//input[@type='password']");
-	private static final By NEXT_BUTTON = By.xpath("(//button[@jsname='LgbsSe'])[2]");
+	private static final By EMAIL_NEXT_BUTTON = By.id("identifierNext");
+	private static final By PASSWORD_NEXT_BUTTON = By.id("passwordNext");
 
 	public LoginPage_KYCSuperadmin clickOnButton(String text) {
 		By locator;
@@ -46,8 +47,8 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
 			locator = PASSWORD_INPUTBOX;
 			break;
 		case "nextbtn":
-			locator = NEXT_BUTTON;
-			break;
+			clickGoogleNext();
+			return this;
 
 		default:
 			throw new IllegalArgumentException("Invalid error message locator key: " + text);
@@ -57,6 +58,18 @@ public class LoginPage_KYCSuperadmin extends BrowserUtility {
 		logger.info("Clicking on button: " + text);
 		element.click();
 		return this;
+	}
+
+	private void clickGoogleNext() {
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(20));
+		By locator = hasVisiblePasswordField() ? PASSWORD_NEXT_BUTTON : EMAIL_NEXT_BUTTON;
+		WebElement element = wait.until(ExpectedConditions.elementToBeClickable(locator));
+		logger.info("Clicking Google {} Next button", locator.equals(PASSWORD_NEXT_BUTTON) ? "password" : "email");
+		element.click();
+	}
+
+	private boolean hasVisiblePasswordField() {
+		return getDriver().findElements(PASSWORD_INPUTBOX).stream().anyMatch(WebElement::isDisplayed);
 	}
 
 	public LoginPage_KYCSuperadmin writeService(String text, String input) {

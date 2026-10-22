@@ -5,6 +5,7 @@ import java.time.Duration;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -63,8 +64,14 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 
 	public DashboardPage_KYCSuperadmin clickOnSearchButton_KYCSuperadmin() {
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
-		WebElement user = wait.until(ExpectedConditions.elementToBeClickable(SEARCHBUTTON_KYCDASHBOARD));
-		user.click();
+		// The current Superadmin UI filters while typing and no longer renders this button.
+		for (WebElement button : getDriver().findElements(SEARCHBUTTON_KYCDASHBOARD)) {
+			if (button.isDisplayed() && button.isEnabled()) {
+				wait.until(ExpectedConditions.elementToBeClickable(button)).click();
+				return this;
+			}
+		}
+		wait.until(ExpectedConditions.elementToBeClickable(SEARCHBAR_KYCDASHBOARD)).sendKeys(Keys.ENTER);
 		return this;
 	}
 
@@ -81,20 +88,16 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 		wait.until(driver -> searchBar.isDisplayed() && searchBar.isEnabled());
 
 		searchBar.click();
-
-		try {
-
-			searchBar.clear();
-			searchBar.sendKeys(value);
-
-		} catch (Exception e) {
-
-			js.executeScript(
-					"arguments[0].value='';" + "arguments[0].dispatchEvent(new Event('input', {bubbles:true}));",
-					searchBar);
-
-			searchBar.sendKeys(value);
-		}
+		searchBar.clear();
+		searchBar.sendKeys(value);
+		wait.until(driver -> value.equals(searchBar.getAttribute("value")));
+		// The current dashboard reacts to framework input/change events rather than
+		// the removed standalone Search button.
+		js.executeScript(
+				"arguments[0].dispatchEvent(new Event('input', {bubbles:true}));"
+						+ "arguments[0].dispatchEvent(new Event('change', {bubbles:true}));"
+						+ "arguments[0].blur();",
+				searchBar);
 
 		return this;
 	}

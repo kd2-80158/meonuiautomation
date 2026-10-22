@@ -1,5 +1,6 @@
 package com.ui.cloud.rekyc.corporateworkflow;
 
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
@@ -14,8 +15,6 @@ import com.ui.utilities.JSONUtility;
 @Listeners({ com.ui.listeners.TestListener.class })
 public class RekycCorporateWorkflowTest extends BaseTest {
 
-	private static final String CLIENT_CODE = "MEON1";
-	private static final String VALID_OTP = "444444";
 	private static final String INVALID_OTP = "123456";
 
 	private String url;
@@ -52,9 +51,9 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 	@Test(description = "tc_corp_rekyc_001/003/006 - invalid OTP is rejected and valid OTP opens Personal", priority = 2,
 			groups = { "critical", "smoke", "functional", "negative" })
 	public void verifyOtpValidationAndValidLogin() {
-		loginPage.enterClientCode(CLIENT_CODE).clickOnSendOtpButton().enterOtp(INVALID_OTP).clickOnVerifyButton();
+		loginPage.enterClientCode(clientCode()).clickOnSendOtpButton().enterOtp(INVALID_OTP).clickOnVerifyButton();
 		softAssert.assertEquals(loginPage.getErrorMessage("otp"), "invalid otp");
-		loginPage.enterOtp(VALID_OTP).clickOnVerifyButton();
+		loginPage.enterOtp(validOtp()).clickOnVerifyButton();
 		ensureOnPage("/Personal/page", "Personal Details");
 		personalPage.waitUntilReady();
 		softAssert.assertTrue(loginPage.isPersonalPageVisible(), "Personal Details should be visible");
@@ -66,7 +65,7 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 	public void verifyCriticalCorporateKycDataIsFetched() {
 		loginToPersonalPage();
 		softAssert.assertEquals(personalPage.getActualText("heading_ad"), "Account Details");
-		softAssert.assertEquals(personalPage.getActualText("c_id"), CLIENT_CODE);
+		softAssert.assertEquals(personalPage.getActualText("c_id"), clientCode());
 		softAssert.assertEquals(personalPage.getActualText("c_status"), "ACTIVE");
 		softAssert.assertEquals(personalPage.getActualText("c_pan"), "KAEPK1365J");
 		softAssert.assertFalse(personalPage.getActualText("c_email").isBlank(), "Email should be populated");
@@ -186,7 +185,7 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 		loginToPersonalPage();
 		personalPage.goToDocumentPage();
 		documentPage.goBackToPersonalPage();
-		softAssert.assertEquals(personalPage.getActualText("c_id"), CLIENT_CODE);
+		softAssert.assertEquals(personalPage.getActualText("c_id"), clientCode());
 		softAssert.assertEquals(personalPage.getAuthorizedSignatoryCount(), 2);
 		softAssert.assertAll();
 	}
@@ -196,8 +195,36 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 			personalPage.waitUntilReady();
 			return;
 		}
-		loginPage.enterClientCode(CLIENT_CODE).clickOnSendOtpButton().enterOtp(VALID_OTP).clickOnVerifyButton();
-		ensureOnPage("/Personal/page", "Personal Details");
+		loginPage.enterClientCode(clientCode()).clickOnSendOtpButton().enterOtp(validOtp()).clickOnVerifyButton();
+		if (!loginPage.waitForPersonalPageOrLoginError()) {
+			String message = loginPage.getVisibleLoginMessage();
+			if (message.contains("being processed")) {
+				throw new SkipException("Corporate ReKYC fixture is unavailable: " + message
+						+ " Use a reset, ACTIVE fixture for this scheduled run.");
+			}
+			throw new IllegalStateException("Corporate ReKYC login did not reach Personal Details. URL: "
+					+ driver.getCurrentUrl() + ". Login message: " + message);
+		}
 		personalPage.waitUntilReady();
+	}
+
+	private String clientCode() {
+		return requiredFixtureValue("REKYC_CORPORATE_TEST_CLIENT_CODE");
+	}
+
+	private String validOtp() {
+		return requiredFixtureValue("REKYC_CORPORATE_TEST_OTP");
+	}
+
+	private String requiredFixtureValue(String name) {
+		String value = System.getenv(name);
+		if (value == null || value.isBlank()) {
+			value = System.getProperty(name);
+		}
+		if (value == null || value.isBlank()) {
+			throw new SkipException("Corporate ReKYC test fixture is not configured. Set " + name
+					+ " in the scheduler environment or Maven system properties.");
+		}
+		return value.trim();
 	}
 }

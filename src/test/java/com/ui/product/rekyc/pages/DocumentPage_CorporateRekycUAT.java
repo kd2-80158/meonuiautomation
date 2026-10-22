@@ -4,6 +4,8 @@ import java.time.Duration;
 
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementClickInterceptedException;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -52,8 +54,7 @@ public class DocumentPage_CorporateRekycUAT extends BrowserUtility {
 	}
 
 	public String openFinalSubmissionConfirmationAndDismiss() {
-		new WebDriverWait(getDriver(), Duration.ofSeconds(15))
-				.until(ExpectedConditions.elementToBeClickable(NEXT_BUTTON)).click();
+		click(NEXT_BUTTON, "final submission");
 		Alert confirmation = new WebDriverWait(getDriver(), Duration.ofSeconds(15))
 				.until(ExpectedConditions.alertIsPresent());
 		String message = confirmation.getText();
@@ -62,8 +63,7 @@ public class DocumentPage_CorporateRekycUAT extends BrowserUtility {
 	}
 
 	public DocumentPage_CorporateRekycUAT goBackToPersonalPage() {
-		new WebDriverWait(getDriver(), Duration.ofSeconds(15))
-				.until(ExpectedConditions.elementToBeClickable(PREVIOUS_BUTTON)).click();
+		click(PREVIOUS_BUTTON, "previous");
 		new WebDriverWait(getDriver(), Duration.ofSeconds(30))
 				.until(ExpectedConditions.urlContains("/Personal/page"));
 		return this;
@@ -72,5 +72,18 @@ public class DocumentPage_CorporateRekycUAT extends BrowserUtility {
 	private String visibleText(By locator) {
 		return new WebDriverWait(getDriver(), Duration.ofSeconds(15))
 				.until(ExpectedConditions.visibilityOfElementLocated(locator)).getText().trim();
+	}
+
+	private void click(By locator, String description) {
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
+		WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+		((JavascriptExecutor) getDriver()).executeScript(
+				"arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", element);
+		wait.until(ExpectedConditions.elementToBeClickable(element));
+		try {
+			element.click();
+		} catch (ElementClickInterceptedException intercepted) {
+			((JavascriptExecutor) getDriver()).executeScript("arguments[0].click();", element);
+		}
 	}
 }
