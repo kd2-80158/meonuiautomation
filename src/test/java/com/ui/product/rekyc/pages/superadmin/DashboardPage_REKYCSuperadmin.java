@@ -55,11 +55,17 @@ public class DashboardPage_REKYCSuperadmin extends BrowserUtility{
 			String searchValue = getDriver().findElements(SEARCH_LOCATOR).stream()
 					.findFirst().map(element -> element.getAttribute("value")).orElse("<missing>");
 			int rowCount = getDriver().findElements(By.cssSelector("#company-table tbody tr")).size();
+			String firstRow = getDriver().findElements(By.cssSelector("#company-table tbody tr")).stream()
+					.findFirst().map(WebElement::getText).orElse("<none>")
+					.replaceAll("\\s+", " ");
+			if (firstRow.length() > 160) {
+				firstRow = firstRow.substring(0, 160);
+			}
 			int adminButtons = getDriver().findElements(By.cssSelector("button.visit-admin")).size();
 			boolean noMatches = !getDriver().findElements(By.xpath("//*[contains(text(), 'No matching records')]")).isEmpty();
 			throw new AssertionError("MEON Visit Admin unavailable: search='" + searchValue
 					+ "', tableRows=" + rowCount + ", adminButtons=" + adminButtons
-					+ ", noMatchingRecords=" + noMatches + ", viewport="
+					+ ", firstRow='" + firstRow + "', noMatchingRecords=" + noMatches + ", viewport="
 					+ getDriver().manage().window().getSize(), e);
 		}
 		searchbar.click();
