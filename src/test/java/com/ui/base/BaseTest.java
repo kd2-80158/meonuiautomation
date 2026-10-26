@@ -38,8 +38,9 @@ public class BaseTest {
 		String browser = System.getProperty("browser", "firefox");
 
 		boolean isHeadless = Boolean.parseBoolean(System.getProperty("isHeadless", "false"));
+		boolean cloudRun = Boolean.parseBoolean(System.getProperty("meon.cloudRun", "false"));
 		Path downloadDirectory = Paths.get(System.getProperty("meon.download.dir",
-				isHeadless && System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux")
+				cloudRun && System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux")
 						? "/work/downloads" : System.getProperty("user.home") + "/Downloads"));
 		try {
 			Files.createDirectories(downloadDirectory);
