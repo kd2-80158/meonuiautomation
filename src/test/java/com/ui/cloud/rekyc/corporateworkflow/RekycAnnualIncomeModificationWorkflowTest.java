@@ -283,21 +283,33 @@ public class RekycAnnualIncomeModificationWorkflowTest extends BaseTest {
 		evidence.capture("Annual Income Modification selected");
 
 		// Step 7: Generate PDF
-		String downloadDirectory = System.getProperty("user.home") + "/Downloads";
-
+		boolean cloudRun = Boolean.parseBoolean(System.getProperty("isHeadless", "false"))
+				&& System.getProperty("os.name", "").toLowerCase().contains("linux");
+		String downloadDirectory = System.getProperty("meon.download.dir",
+				System.getProperty("user.home") + "/Downloads");
 		long downloadStartTime = System.currentTimeMillis();
+		if (cloudRun) {
+			makerCheckerPage.prepareGeneratedPdfCapture();
+		}
 
 		makerCheckerPage.clickGeneratePdfForClient("MEON1");
 
 		// Step 8: Verify generated PDF
-		boolean pdfVerified = makerCheckerPage.isPdfDownloadedAndOpenable(downloadDirectory,
-				"AnnualIncomeModificationPDF", downloadStartTime);
+		boolean pdfVerified = cloudRun ? makerCheckerPage.isGeneratedPdfResponseOpenable()
+				: makerCheckerPage.isPdfDownloadedAndOpenable(downloadDirectory,
+						"AnnualIncomeModificationPDF", downloadStartTime);
 		if (pdfVerified) {
-			evidence.capture("PDF download completed");
-			evidence.attachPdfPreview(makerCheckerPage.getLastVerifiedPdf());
+			evidence.capture(cloudRun ? "PDF response verified" : "PDF download completed");
+			if (cloudRun) {
+				evidence.attachPdfPreview(makerCheckerPage.getLastVerifiedPdfBytes());
+			} else {
+				evidence.attachPdfPreview(makerCheckerPage.getLastVerifiedPdf());
+			}
 		}
 
-		softAssert.assertTrue(pdfVerified, "Generated PDF should download and open successfully");
+		softAssert.assertTrue(pdfVerified, cloudRun
+				? "Generated PDF API and browser response should contain an openable PDF"
+				: "Generated PDF should download and open successfully");
 
 		softAssert.assertAll();
 		} finally {
