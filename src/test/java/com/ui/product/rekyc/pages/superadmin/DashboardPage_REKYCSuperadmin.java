@@ -6,6 +6,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.Listeners;
@@ -44,13 +45,29 @@ public class DashboardPage_REKYCSuperadmin extends BrowserUtility{
 		default:
 			throw new IllegalArgumentException("Unable to locate the locator: "+locator);
 		}
-		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds("visitadmin".equalsIgnoreCase(text) ? 45 : 15));
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds("visitadmin".equalsIgnoreCase(text) ? 20 : 15));
 		WebElement searchbar;
 		try {
 			searchbar = wait.until(ExpectedConditions.elementToBeClickable(locator));
 		} catch (TimeoutException e) {
 			if (!"visitadmin".equalsIgnoreCase(text)) {
 				throw e;
+			}
+			String initialRow = getDriver().findElements(By.cssSelector("#company-table tbody tr")).stream()
+					.findFirst().map(WebElement::getText).orElse("");
+			if (initialRow.contains("Loading companies")) {
+				getDriver().navigate().refresh();
+				WebElement search = new WebDriverWait(getDriver(), Duration.ofSeconds(15))
+						.until(ExpectedConditions.elementToBeClickable(SEARCH_LOCATOR));
+				search.clear();
+				search.sendKeys("meon");
+				try {
+					new WebDriverWait(getDriver(), Duration.ofSeconds(45))
+							.until(ExpectedConditions.elementToBeClickable(VISITADMIN_BUTTON)).click();
+					return this;
+				} catch (TimeoutException ignored) {
+					// Report the refreshed page state below.
+				}
 			}
 			String searchValue = getDriver().findElements(SEARCH_LOCATOR).stream()
 					.findFirst().map(element -> element.getAttribute("value")).orElse("<missing>");
@@ -62,10 +79,13 @@ public class DashboardPage_REKYCSuperadmin extends BrowserUtility{
 				firstRow = firstRow.substring(0, 160);
 			}
 			int adminButtons = getDriver().findElements(By.cssSelector("button.visit-admin")).size();
+			boolean sessionReady = Boolean.TRUE.equals(((JavascriptExecutor) getDriver())
+					.executeScript("return !!sessionStorage.getItem('access_token')"));
 			boolean noMatches = !getDriver().findElements(By.xpath("//*[contains(text(), 'No matching records')]")).isEmpty();
 			throw new AssertionError("MEON Visit Admin unavailable: search='" + searchValue
 					+ "', tableRows=" + rowCount + ", adminButtons=" + adminButtons
-					+ ", firstRow='" + firstRow + "', noMatchingRecords=" + noMatches + ", viewport="
+					+ ", firstRow='" + firstRow + "', sessionReady=" + sessionReady
+					+ ", noMatchingRecords=" + noMatches + ", viewport="
 					+ getDriver().manage().window().getSize(), e);
 		}
 		searchbar.click();
