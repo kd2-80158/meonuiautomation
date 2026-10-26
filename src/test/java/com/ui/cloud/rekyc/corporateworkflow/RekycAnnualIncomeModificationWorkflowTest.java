@@ -283,7 +283,7 @@ public class RekycAnnualIncomeModificationWorkflowTest extends BaseTest {
 		evidence.capture("Annual Income Modification selected");
 
 		// Step 7: Generate PDF
-		boolean cloudRun = Boolean.parseBoolean(System.getProperty("isHeadless", "false"))
+		boolean cloudRun = Boolean.parseBoolean(System.getProperty("meon.cloudRun", "false"))
 				&& System.getProperty("os.name", "").toLowerCase().contains("linux");
 		String downloadDirectory = System.getProperty("meon.download.dir",
 				System.getProperty("user.home") + "/Downloads");
