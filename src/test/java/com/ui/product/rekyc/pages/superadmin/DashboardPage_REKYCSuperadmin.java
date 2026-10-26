@@ -19,7 +19,7 @@ public class DashboardPage_REKYCSuperadmin extends BrowserUtility{
 	}
 	
 	private static final By SEARCH_LOCATOR = By.id("search__company");
-	private static final By VISITADMIN_BUTTON = By.xpath("(//button[@class='visit-admin'])[1]");
+	private static final By VISITADMIN_BUTTON = By.xpath("//tr[.//td[contains(normalize-space(.), 'meon_rekyc')]]//button[contains(concat(' ', normalize-space(@class), ' '), ' visit-admin ')]");
 	private static final By WORKFLOWV2_SIDENAVIGATIONBAR = By.xpath("//a[@href='/v1/company/workflow_v2']");
 	private static final By MAKERANDCHECKER_SIDENAVIGATIONBAR = By.xpath("//a[@href='#general-pages']");
 	
@@ -43,7 +43,7 @@ public class DashboardPage_REKYCSuperadmin extends BrowserUtility{
 		default:
 			throw new IllegalArgumentException("Unable to locate the locator: "+locator);
 		}
-		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds("visitadmin".equalsIgnoreCase(text) ? 45 : 15));
 		WebElement searchbar = wait.until(ExpectedConditions.elementToBeClickable(locator));
 		searchbar.click();
 		return this;

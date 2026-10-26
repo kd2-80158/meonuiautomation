@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.Dimension;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
@@ -123,7 +124,9 @@ public class BaseTest {
 
 		driver.manage().timeouts().scriptTimeout(Duration.ofSeconds(30));
 
-		if (!isHeadless) {
+		if (isHeadless) {
+			driver.manage().window().setSize(new Dimension(1920, 1080));
+		} else {
 			driver.manage().window().maximize();
 		}
 
