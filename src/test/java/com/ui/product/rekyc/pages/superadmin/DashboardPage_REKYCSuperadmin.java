@@ -5,6 +5,7 @@ import java.time.Duration;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.Listeners;
@@ -44,7 +45,23 @@ public class DashboardPage_REKYCSuperadmin extends BrowserUtility{
 			throw new IllegalArgumentException("Unable to locate the locator: "+locator);
 		}
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds("visitadmin".equalsIgnoreCase(text) ? 45 : 15));
-		WebElement searchbar = wait.until(ExpectedConditions.elementToBeClickable(locator));
+		WebElement searchbar;
+		try {
+			searchbar = wait.until(ExpectedConditions.elementToBeClickable(locator));
+		} catch (TimeoutException e) {
+			if (!"visitadmin".equalsIgnoreCase(text)) {
+				throw e;
+			}
+			String searchValue = getDriver().findElements(SEARCH_LOCATOR).stream()
+					.findFirst().map(element -> element.getAttribute("value")).orElse("<missing>");
+			int rowCount = getDriver().findElements(By.cssSelector("#company-table tbody tr")).size();
+			int adminButtons = getDriver().findElements(By.cssSelector("button.visit-admin")).size();
+			boolean noMatches = !getDriver().findElements(By.xpath("//*[contains(text(), 'No matching records')]")).isEmpty();
+			throw new AssertionError("MEON Visit Admin unavailable: search='" + searchValue
+					+ "', tableRows=" + rowCount + ", adminButtons=" + adminButtons
+					+ ", noMatchingRecords=" + noMatches + ", viewport="
+					+ getDriver().manage().window().getSize(), e);
+		}
 		searchbar.click();
 		return this;
 	}
