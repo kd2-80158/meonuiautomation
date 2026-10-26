@@ -1,8 +1,12 @@
 
 package com.ui.base;
-
 import java.time.Duration;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.openqa.selenium.WebDriver;
@@ -26,7 +30,6 @@ public class BaseTest {
 
 	@BeforeClass(alwaysRun = true)
 	public void setupBrowser() {
-
 		if (driver != null) {
 			return;
 		}
@@ -34,6 +37,15 @@ public class BaseTest {
 		String browser = System.getProperty("browser", "firefox");
 
 		boolean isHeadless = Boolean.parseBoolean(System.getProperty("isHeadless", "false"));
+		Path downloadDirectory = Paths.get(System.getProperty("meon.download.dir",
+				isHeadless && System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux")
+						? "/work/downloads" : System.getProperty("user.home") + "/Downloads"));
+		try {
+			Files.createDirectories(downloadDirectory);
+		} catch (IOException e) {
+			throw new IllegalStateException("Could not create PDF download directory: " + downloadDirectory, e);
+		}
+		System.setProperty("meon.download.dir", downloadDirectory.toString());
 
 		if (browser.equalsIgnoreCase("chrome") || browser.equalsIgnoreCase("chromium")) {
 
@@ -45,6 +57,9 @@ public class BaseTest {
 			chromePreferences.put("signin.interception_enabled", false);
 			chromePreferences.put("credentials_enable_service", false);
 			chromePreferences.put("profile.password_manager_enabled", false);
+			chromePreferences.put("download.default_directory", downloadDirectory.toString());
+			chromePreferences.put("download.prompt_for_download", false);
+			chromePreferences.put("plugins.always_open_pdf_externally", true);
 			options.setExperimentalOption("prefs", chromePreferences);
 
 			options.addArguments("--disable-notifications");
@@ -69,6 +84,13 @@ public class BaseTest {
 
 			if (isHeadless) {
 				options.addArguments("--headless=new");
+				if (System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux")) {
+					options.addArguments("--no-sandbox");
+					options.addArguments("--disable-dev-shm-usage");
+					if (Files.isExecutable(Paths.get("/usr/bin/chromium"))) {
+						options.setBinary("/usr/bin/chromium");
+					}
+				}
 			}
 
 			driver = new ChromeDriver(options);
@@ -80,6 +102,11 @@ public class BaseTest {
 			options.addPreference("dom.webnotifications.enabled", false);
 
 			options.addPreference("dom.disable_open_during_load", true);
+			options.addPreference("browser.download.folderList", 2);
+			options.addPreference("browser.download.dir", downloadDirectory.toString());
+			options.addPreference("browser.download.useDownloadDir", true);
+			options.addPreference("browser.helperApps.neverAsk.saveToDisk", "application/pdf,application/octet-stream");
+			options.addPreference("pdfjs.disabled", true);
 
 			if (isHeadless) {
 				options.addArguments("-headless");

@@ -88,6 +88,28 @@ public final class JourneyEvidence {
 		}
 	}
 
+	/** Render a verified cloud PDF directly from the browser response, without a Downloads folder. */
+	public void attachPdfPreview(byte[] pdfBytes) {
+		if (pdfBytes == null || pdfBytes.length == 0) {
+			throw new IllegalStateException("Verified PDF response is not available for evidence");
+		}
+		Path preview = directory.resolve("pdf-first-page.png");
+		try (PDDocument document = PDDocument.load(pdfBytes)) {
+			if (document.getNumberOfPages() < 1) {
+				throw new IllegalStateException("Generated PDF has no pages");
+			}
+			BufferedImage firstPage = new PDFRenderer(document).renderImageWithDPI(0, 110);
+			ImageIO.write(firstPage, "png", preview.toFile());
+			if (reportNode != null) {
+				reportNode.pass("PDF response opened successfully: " + document.getNumberOfPages()
+						+ " pages, " + pdfBytes.length + " bytes");
+			}
+			attachImage("Generated PDF - rendered first page", preview.getFileName().toString(), preview);
+		} catch (IOException e) {
+			throw new IllegalStateException("Cannot reopen or render generated PDF response", e);
+		}
+	}
+
 	private void attachImage(String label, String fileName, Path image) throws IOException {
 		if (reportNode != null) {
 			reportNode.info("Step " + (frameCount + 1) + ": " + label);

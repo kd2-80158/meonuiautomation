@@ -5,12 +5,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.ElementClickInterceptedException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.StaleElementReferenceException;
@@ -30,6 +34,7 @@ public class MakerCheckerPage_MeonTechnologies extends BrowserUtility {
 
 	Logger logger = LoggerUtility.getLogger(this.getClass());
 	private Path lastVerifiedPdf;
+	private byte[] lastVerifiedPdfBytes;
 
 	public MakerCheckerPage_MeonTechnologies(WebDriver driver) {
 		super(driver);
@@ -110,6 +115,90 @@ public class MakerCheckerPage_MeonTechnologies extends BrowserUtility {
 				"//tr[td[normalize-space()='" + clientCode + "']]" + "//button[normalize-space()='Generate PDF']");
 		clickWhenUnobstructed(generatePdfButton);
 		return this;
+	}
+
+	/** Observe the existing AJAX and fetch calls without regenerating the PDF. */
+	public void prepareGeneratedPdfCapture() {
+		((JavascriptExecutor) getDriver()).executeScript(
+				"window.__meonPdfResult = null; window.__meonPdfFetches = [];"
+				+ "jQuery(document).off('ajaxComplete.meonPdfTest').on('ajaxComplete.meonPdfTest', function(e,xhr,settings) {"
+				+ "if (settings.url && settings.url.indexOf('/v1/company/generate_pdf/') !== -1) {"
+				+ "window.__meonPdfResult = {httpStatus:xhr.status, body:xhr.responseJSON || null}; }});"
+				+ "if (!window.__meonOriginalFetch) { window.__meonOriginalFetch = window.fetch;"
+				+ "window.fetch = function() { var args = arguments; return window.__meonOriginalFetch.apply(this,args).then(function(response) {"
+				+ "var url = String(args[0] && args[0].url ? args[0].url : args[0]);"
+				+ "if (!(/\\.pdf(?:\\?|$)|download_pdf|generate_pdf/i.test(url) || /pdf/i.test(response.headers.get('content-type') || ''))) return response;"
+				+ "var copy = response.clone(); copy.blob().then(function(blob) {"
+				+ "if (blob.size > 15000000) return;"
+				+ "var reader = new FileReader(); reader.onload = function() {"
+				+ "window.__meonPdfFetches.push({url:url, httpStatus:response.status, mime:blob.type, size:blob.size,"
+				+ "base64:String(reader.result).split(',')[1] || ''}); }; reader.readAsDataURL(blob);"
+				+ "}).catch(function(){}); return response; }); }; }");
+	}
+
+	/** Confirm the generation API and reopen every PDF returned by the page's own fetch. */
+	@SuppressWarnings("unchecked")
+	public boolean isGeneratedPdfResponseOpenable() {
+		lastVerifiedPdfBytes = null;
+		try {
+			Map<String, Object> result = new WebDriverWait(getDriver(), Duration.ofSeconds(60)).until(driver -> {
+				Object value = ((JavascriptExecutor) driver).executeScript("return window.__meonPdfResult;");
+				return value instanceof Map ? (Map<String, Object>) value : null;
+			});
+			if (((Number) result.get("httpStatus")).intValue() != 200) {
+				logger.error("Generate PDF API returned HTTP {}", result.get("httpStatus"));
+				return false;
+			}
+			Map<String, Object> body = (Map<String, Object>) result.get("body");
+			if (body == null || !Boolean.TRUE.equals(body.get("status")) || !(body.get("data") instanceof List)) {
+				logger.error("Generate PDF API did not report successful PDF generation");
+				return false;
+			}
+			List<Map<String, Object>> documents = (List<Map<String, Object>>) body.get("data");
+			if (documents.isEmpty()) {
+				logger.error("Generate PDF API returned no documents");
+				return false;
+			}
+			for (Map<String, Object> document : documents) {
+				if (!(document.get("url") instanceof String) || ((String) document.get("url")).isEmpty()) {
+					logger.error("Generate PDF API returned a document without a URL");
+					return false;
+				}
+				String url = (String) document.get("url");
+				Map<String, Object> proof = new WebDriverWait(getDriver(), Duration.ofSeconds(60)).until(driver -> {
+					Object value = ((JavascriptExecutor) driver).executeScript(
+							"return (window.__meonPdfFetches || []).find(p => new URL(p.url, location.href).href === new URL(arguments[0], location.href).href) || null;", url);
+					return value instanceof Map ? (Map<String, Object>) value : null;
+				});
+				if (((Number) proof.get("httpStatus")).intValue() != 200) {
+					logger.error("Generated PDF fetch returned HTTP {}", proof.get("httpStatus"));
+					return false;
+				}
+				byte[] bytes = Base64.getDecoder().decode(String.valueOf(proof.get("base64")));
+				if (bytes.length < 5 || bytes[0] != '%' || bytes[1] != 'P' || bytes[2] != 'D'
+						|| bytes[3] != 'F' || bytes[4] != '-') {
+					logger.error("Generated response is not a PDF document");
+					return false;
+				}
+				try (PDDocument pdf = PDDocument.load(bytes)) {
+					if (pdf.getNumberOfPages() < 1) {
+						logger.error("Generated PDF has no pages");
+						return false;
+					}
+					logger.info("Generated PDF verified from browser response: {} pages, {} bytes",
+							pdf.getNumberOfPages(), bytes.length);
+					lastVerifiedPdfBytes = bytes;
+				}
+			}
+			return true;
+		} catch (Exception error) {
+			logger.error("Generated PDF response could not be verified: {}", error.toString());
+			return false;
+		}
+	}
+
+	public byte[] getLastVerifiedPdfBytes() {
+		return lastVerifiedPdfBytes;
 	}
 
 	public boolean isPdfDownloadedAndOpenable(String downloadDirectory, String expectedFileNamePart,
