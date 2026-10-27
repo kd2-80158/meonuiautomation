@@ -48,6 +48,9 @@ public class AdminUserPage_DemoCapital extends BrowserUtility {
 	private static final By CONFIRM_BUTTON_DIALOGBOX_ADMINPAGE_DEMOCAPITAL = By
 			.xpath("//button[@id='openConfirmationOverlay']");
 	private static final By USER_SEARCHBAR = By.id("userdetailsSearch");
+	private static final By USER_TABLE = By.id("user-table");
+	private static final By ROW_ACTION_MENU = By.cssSelector("td:last-child .mdi-dots-vertical");
+	private static final By ROW_REMOVE_OPTION = By.cssSelector("td:last-child .overlay .option[onclick^='removeUser(']");
 
 	private static final By SAVE_OVERLAY = By.id("overlay-save");
 	private static final By ADD_USER_OVERLAY = By.id("overlay");
@@ -224,6 +227,40 @@ public class AdminUserPage_DemoCapital extends BrowserUtility {
 		searchBar.sendKeys(value);
 
 		return this;
+	}
+
+	/** Delete only the admin user created by this test; never rely on row order or another user's name. */
+	public AdminUserPage_DemoCapital deleteCreatedAdminUser(String email, String mobile) {
+		if (email == null || email.isBlank() || mobile == null || mobile.isBlank()) {
+			throw new IllegalArgumentException("Created user email and mobile are required for deletion");
+		}
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
+		writeOnUserSearchBar(email);
+		wait.until(ExpectedConditions.invisibilityOfElementLocated(LOADING_OVERLAY));
+		WebElement row = wait.until(driver -> findExactAdminUserRow(email, mobile));
+		wait.until(ExpectedConditions.elementToBeClickable(row.findElement(ROW_ACTION_MENU))).click();
+		row = wait.until(driver -> findExactAdminUserRow(email, mobile));
+		wait.until(ExpectedConditions.elementToBeClickable(row.findElement(ROW_REMOVE_OPTION))).click();
+		wait.until(ExpectedConditions.elementToBeClickable(CONFIRM_BUTTON_DIALOGBOX_ADMINPAGE_DEMOCAPITAL)).click();
+		wait.until(ExpectedConditions.visibilityOfElementLocated(HEADING_DELETE_DIALOGBOX_DEMOCAPITAL));
+		wait.until(driver -> findExactAdminUserRow(email, mobile) == null);
+		return this;
+	}
+
+	private WebElement findExactAdminUserRow(String email, String mobile) {
+		WebElement table = getDriver().findElement(USER_TABLE);
+		for (WebElement row : table.findElements(By.cssSelector("tbody tr"))) {
+			try {
+				java.util.List<WebElement> cells = row.findElements(By.tagName("td"));
+				if (cells.size() >= 3 && mobile.equals(cells.get(1).getText().trim())
+						&& email.equalsIgnoreCase(cells.get(2).getText().trim())) {
+					return row;
+				}
+			} catch (org.openqa.selenium.StaleElementReferenceException ignored) {
+				// The table can repaint after filtering; WebDriverWait will retry.
+			}
+		}
+		return null;
 	}
 
 }
