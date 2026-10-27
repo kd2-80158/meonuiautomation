@@ -20,7 +20,7 @@ public class LoginPage_APIManager extends BrowserUtility{
 	public static By PASSWORD_LOCATOR = By.xpath("//input[@name='password']");
 	public static By SIGN_IN_BUTTON_LOCATOR = By.xpath("//button[contains(normalize-space(), 'Sign in')]");
 	public static By ERROR_MSG_INVALID_CREDENTIALS = By.xpath("//div[contains(text(),'Invalid credentials')]");
-	public static By DASHBOARD_HEADING_LOCATOR = By.xpath("//aside[@class='border-r bg-card/60 p-5 backdrop-blur-md']");
+	public static By DASHBOARD_HEADING_LOCATOR = By.xpath("//main//h1[normalize-space()='Platform Command Center']");
 	
 	
 	public LoginPage_APIManager writeEmail(String email1)

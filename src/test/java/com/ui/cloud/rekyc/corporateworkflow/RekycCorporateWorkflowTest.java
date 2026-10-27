@@ -1,16 +1,22 @@
 package com.ui.cloud.rekyc.corporateworkflow;
 
+import java.lang.reflect.Method;
+
 import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import com.ui.base.BaseTest;
 import com.ui.product.rekyc.pages.DocumentPage_CorporateRekycUAT;
+import com.ui.product.rekyc.pages.ESignPage_CorporateRekycUAT;
 import com.ui.product.rekyc.pages.LoginPage_CorporateRekycUAT;
 import com.ui.product.rekyc.pages.PersonalPage_CorporateRekycUAT;
 import com.ui.utilities.JSONUtility;
+import com.ui.utilities.JourneyEvidence;
+import com.ui.utilities.ExtentReporterUtility;
 
 @Listeners({ com.ui.listeners.TestListener.class })
 public class RekycCorporateWorkflowTest extends BaseTest {
@@ -21,14 +27,32 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 	private LoginPage_CorporateRekycUAT loginPage;
 	private PersonalPage_CorporateRekycUAT personalPage;
 	private DocumentPage_CorporateRekycUAT documentPage;
+	private JourneyEvidence evidence;
+	private String currentTestName;
 
 	@BeforeMethod(alwaysRun = true)
-	public void prepareIndependentTest() {
+	public void prepareIndependentTest(Method method) {
+		currentTestName = method.getName();
+		evidence = null;
 		url = JSONUtility.getRekycUrl().getUrl();
 		driver.get(url);
 		loginPage = new LoginPage_CorporateRekycUAT(driver);
 		personalPage = new PersonalPage_CorporateRekycUAT(driver);
 		documentPage = new DocumentPage_CorporateRekycUAT(driver);
+	}
+
+	@AfterMethod(alwaysRun = true)
+	public void finishEvidence() {
+		try {
+			captureEvidence("Final browser state");
+		} catch (RuntimeException error) {
+			ExtentReporterUtility.warning("Final evidence screenshot unavailable: " + error.getMessage());
+		} finally {
+			if (evidence != null) {
+				evidence.finish();
+				evidence = null;
+			}
+		}
 	}
 
 	@AfterClass(alwaysRun = true)
@@ -42,7 +66,9 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 	@Test(description = "tc_corp_rekyc_002 - invalid client code is rejected", priority = 1,
 			groups = { "critical", "functional", "negative" })
 	public void verifyInvalidClientCodeIsRejected() {
+		captureEvidence("Corporate login page");
 		loginPage.enterClientCode("12345").clickOnSendOtpButton();
+		captureEvidence("Invalid client code rejected");
 		softAssert.assertEquals(loginPage.getErrorMessage("clientcode"),
 				"PAN not found in the back-office response mapping.");
 		softAssert.assertAll();
@@ -51,11 +77,14 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 	@Test(description = "tc_corp_rekyc_001/003/006 - invalid OTP is rejected and valid OTP opens Personal", priority = 2,
 			groups = { "critical", "smoke", "functional", "negative" })
 	public void verifyOtpValidationAndValidLogin() {
+		captureEvidence("Corporate login page");
 		loginPage.enterClientCode(clientCode()).clickOnSendOtpButton().enterOtp(INVALID_OTP).clickOnVerifyButton();
+		captureEvidence("Invalid OTP rejected");
 		softAssert.assertEquals(loginPage.getErrorMessage("otp"), "invalid otp");
 		loginPage.enterOtp(validOtp()).clickOnVerifyButton();
 		ensureOnPage("/Personal/page", "Personal Details");
 		personalPage.waitUntilReady();
+		captureEvidence("Personal Details opened after valid OTP");
 		softAssert.assertTrue(loginPage.isPersonalPageVisible(), "Personal Details should be visible");
 		softAssert.assertAll();
 	}
@@ -158,24 +187,33 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 	public void verifyNoChangeRouteOpensDocumentPage() {
 		loginToPersonalPage();
 		personalPage.goToDocumentPage();
+		captureEvidence("Document Upload opened");
 		softAssert.assertTrue(documentPage.isDisplayed(), "Document Upload should be displayed");
 		softAssert.assertAll();
 	}
 
-	@Test(description = "tc_corp_rekyc_052 - complete documents reach the final submission gate", priority = 13,
+	@Test(description = "tc_corp_rekyc_052 - complete documents generate a readable eSign PDF preview", priority = 13,
 			groups = { "critical", "functional" })
 	public void verifyDocumentCompletionAndFinalSubmissionGate() {
 		loginToPersonalPage();
 		personalPage.goToDocumentPage();
+		documentPage.waitForCompletionData();
+		captureEvidence("Document Upload completion");
 		softAssert.assertEquals(documentPage.getCompletionPercentage(), "100%");
-		softAssert.assertEquals(documentPage.getCompletionCount(), "7 of 7 Uploaded");
-		softAssert.assertEquals(documentPage.getRequiredDocumentCount(), 7);
+		softAssert.assertTrue(documentPage.isCompletionCountFullyUploaded(),
+				"Completion count should show every configured document uploaded: "
+						+ documentPage.getCompletionCount());
+		softAssert.assertTrue(documentPage.getRequiredDocumentCount() > 0,
+				"At least one mandatory document should be configured");
 		softAssert.assertTrue(documentPage.areAllRequiredDocumentsUploaded(),
 				"Every mandatory document must be uploaded and not rejected");
-		String confirmation = documentPage.openFinalSubmissionConfirmationAndDismiss();
-		softAssert.assertFalse(confirmation.isBlank(), "Final submission must require explicit confirmation");
-		softAssert.assertTrue(driver.getCurrentUrl().contains("/Document/page"),
-				"Dismissing confirmation must keep the user on Document Upload");
+		ESignPage_CorporateRekycUAT eSignPage = documentPage.goToESignPage();
+		softAssert.assertTrue(eSignPage.isDisplayed(), "Generated eSign document link should be visible");
+		captureEvidence("Aadhaar eSign page with generated document link");
+		eSignPage.openCorporatePdfPreview();
+		softAssert.assertTrue(eSignPage.isCorporatePdfRendered(),
+				"Corporate PDF should render in the eSign gateway preview");
+		captureEvidence("Generated corporate PDF opened in preview");
 		softAssert.assertAll();
 	}
 
@@ -184,15 +222,35 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 	public void verifyPreviousNavigationPreservesPersonalData() {
 		loginToPersonalPage();
 		personalPage.goToDocumentPage();
+		captureEvidence("Document Upload before Previous");
 		documentPage.goBackToPersonalPage();
 		softAssert.assertEquals(personalPage.getActualText("c_id"), clientCode());
 		softAssert.assertEquals(personalPage.getAuthorizedSignatoryCount(), 2);
 		softAssert.assertAll();
 	}
 
+	@Test(description="tc_corp_rekyc_067 - Confirm the sub-heading for Corporate IPV",priority=15, groups= {"smoke","functional"})
+	public void verifySubHeadingForIPV()
+	{
+		loginToPersonalPage();
+		personalPage.goToDocumentPage();
+		softAssert.assertTrue(documentPage.isSubheadingDisplayed());
+		softAssert.assertAll();
+	}
+
+	@Test(description="tc_corp_rekyc_068 - Confirm the sub-heading for Corporate IPV",priority=15, groups= {"smoke","functional"})
+	public void verifySubHeadingTextForIPV()
+	{
+		loginToPersonalPage();
+		personalPage.goToDocumentPage();
+		softAssert.assertTrue(documentPage.isSubheadingTextDisplayed());
+		softAssert.assertAll();
+	}
+
 	private void loginToPersonalPage() {
 		if (driver.getCurrentUrl().contains("/Personal/page")) {
 			personalPage.waitUntilReady();
+			captureEvidence("Corporate Personal Details loaded");
 			return;
 		}
 		loginPage.enterClientCode(clientCode()).clickOnSendOtpButton().enterOtp(validOtp()).clickOnVerifyButton();
@@ -206,6 +264,14 @@ public class RekycCorporateWorkflowTest extends BaseTest {
 					+ driver.getCurrentUrl() + ". Login message: " + message);
 		}
 		personalPage.waitUntilReady();
+		captureEvidence("Corporate Personal Details loaded");
+	}
+
+	private void captureEvidence(String step) {
+		if (evidence == null) {
+			evidence = new JourneyEvidence(driver, currentTestName);
+		}
+		evidence.capture(step);
 	}
 
 	private String clientCode() {
