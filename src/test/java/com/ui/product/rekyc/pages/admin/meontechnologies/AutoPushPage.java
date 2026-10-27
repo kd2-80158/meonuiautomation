@@ -458,13 +458,20 @@ public final class AutoPushPage {
 		return false;
 	}
 	public void inspectBatchCode(String batchCode) {
-		if (liveStatusActionAvailable() && driver.findElement(By.id("apLiveStatusMeta")).getText().contains(batchCode)) {
-			viewLiveActivity();
-		} else {
-			click(By.xpath("//*[@id='apBatchesBody']//tr[.//*[contains(@class,'ap-batch-code') "
-					+ "and normalize-space()='" + batchCode + "']]//button[contains(@class,'ap-open-batch')]"));
+		By action = By.xpath("//*[@id='apBatchesBody']//tr[.//*[contains(@class,'ap-batch-code') "
+				+ "and normalize-space()='" + batchCode + "']]//button[contains(@class,'ap-open-batch')]");
+		WebElement button = wait.until(ExpectedConditions.presenceOfElementLocated(action));
+		((JavascriptExecutor) driver).executeScript(
+				"arguments[0].scrollIntoView({block:'center',inline:'center'});", button);
+		try {
+			new WebDriverWait(driver, Duration.ofSeconds(5))
+					.until(ExpectedConditions.elementToBeClickable(action)).click();
+		} catch (TimeoutException | ElementClickInterceptedException offScreen) {
+			// The action can remain clipped by the horizontally scrolling table in Firefox.
+			// Dispatch only this read-only details action, then require the drawer to open.
+			((JavascriptExecutor) driver).executeScript("arguments[0].click();", driver.findElement(action));
 		}
-		wait.until(d -> "false".equals(d.findElement(By.id("apBatchDrawer")).getAttribute("aria-hidden")));
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("apBatchDrawer")));
 		wait.until(d -> d.findElement(By.id("apDrawerSummary")).getText().contains(batchCode));
 	}
 	public String firstBatchName() {
