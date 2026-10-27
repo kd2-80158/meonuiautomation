@@ -22,7 +22,7 @@
 
   <test name="API Manager">
     <classes>
-      <class name="com.ui.product.apimanager.tests.LoginPageTest_APIManager"/>
+      <class name="com.ui.cloud.apimanager.admin.LoginPage_APIManagerTest"/>
     </classes>
   </test>
 

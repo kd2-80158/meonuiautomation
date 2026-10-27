@@ -299,6 +299,13 @@ public class TestListener implements ITestListener, IConfigurationListener, IExe
 	}
 
 	private void attachScreenshot(ITestResult result, ExtentTest test, String title) {
+		// API Manager pages can display live API keys and vendor credentials.
+		// Never persist full-page screenshots of that suite in local or cloud reports.
+		if (result != null && result.getTestClass() != null
+				&& result.getTestClass().getName().startsWith("com.ui.cloud.apimanager.")) {
+			test.info("Screenshot omitted for API Manager to avoid capturing credentials or API keys");
+			return;
+		}
 		WebDriver webDriver = resolveDriver(result);
 		try {
 			Path screenshotDirectory = Paths.get(System.getProperty("user.dir"), "logs", "screenshots");

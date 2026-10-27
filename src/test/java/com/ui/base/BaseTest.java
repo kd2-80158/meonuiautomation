@@ -8,11 +8,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.logging.LogType;
+import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -63,6 +66,10 @@ public class BaseTest {
 			chromePreferences.put("download.prompt_for_download", false);
 			chromePreferences.put("plugins.always_open_pdf_externally", true);
 			options.setExperimentalOption("prefs", chromePreferences);
+			LoggingPreferences logging = new LoggingPreferences();
+			logging.enable(LogType.PERFORMANCE, Level.ALL);
+			logging.enable(LogType.BROWSER, Level.ALL);
+			options.setCapability("goog:loggingPrefs", logging);
 
 			options.addArguments("--disable-notifications");
 

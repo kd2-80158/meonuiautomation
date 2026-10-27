@@ -1,6 +1,8 @@
 package com.ui.kyc.pages.superadmin;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
@@ -38,7 +40,7 @@ public class AdminUsersPage_KYCSuperadmin extends BrowserUtility {
 	private static final By REMOVEUSER_BUTTON = By.xpath("//button[@id='openConfirmationOverlay']");
 	private static final By HEADINGFORDELETION_USERDIALOGBOX = By
 			.xpath("(//div[@class='confirmation-container'])[1]/div[1]");
-	private static final By USERNAMEDROPDOWN_OPTION = By.xpath("//li[contains(text(),'Shubhi')]");
+	private static final By USERNAME_OPTIONS = By.cssSelector("li");
 	private static final By ACCESSGRANTED_OPTION = By
 			.xpath("(//a[contains(text(),'User') and @class='dropdown-item'])[1]");
 	private static final By USERACTIVE_OPTION = By
@@ -47,6 +49,9 @@ public class AdminUsersPage_KYCSuperadmin extends BrowserUtility {
     private static final By SUCCESSMSG_DELETION = By.xpath("(//div[contains(normalize-space(),'Deleted')])[8]");
 	
     public AdminUsersPage_KYCSuperadmin clickOnButton(String text) {
+		if ("user_subhi".equalsIgnoreCase(text)) {
+			return selectUsername(System.getProperty("kyc.superadmin.testUsername", "Shubhi"));
+		}
 		By locator;
 		switch (text.toLowerCase()) {
 		case "adduser_button":
@@ -67,10 +72,6 @@ public class AdminUsersPage_KYCSuperadmin extends BrowserUtility {
 
 		case "removeuser":
 			locator = REMOVEUSER_BUTTON;
-
-		case "user_subhi":
-			locator = USERNAMEDROPDOWN_OPTION;
-			break;
 
 		case "accessgrant_subhi":
 			locator = ACCESSGRANTED_OPTION;
@@ -95,6 +96,45 @@ public class AdminUsersPage_KYCSuperadmin extends BrowserUtility {
 		WebElement button = wait.until(ExpectedConditions.elementToBeClickable(locator));
 		button.click();
 		return this;
+	}
+
+	/** Select an exact visible dropdown option, including text nested inside the li. */
+	public AdminUsersPage_KYCSuperadmin selectUsername(String username) {
+		if (username == null || username.isBlank()) {
+			throw new IllegalArgumentException("KYC superadmin test username must not be blank");
+		}
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(20));
+		List<WebElement> matches = visibleUsernameOptions(username);
+		WebElement dropdown = wait.until(ExpectedConditions.elementToBeClickable(USERNAME_DROPDOWN));
+		if (matches.isEmpty() && !"true".equalsIgnoreCase(dropdown.getAttribute("aria-expanded"))) {
+			dropdown.click();
+		}
+		try {
+			WebElement option = wait.until(driver -> {
+				List<WebElement> visible = visibleUsernameOptions(username);
+				return visible.isEmpty() ? null : visible.get(0);
+			});
+			wait.until(ExpectedConditions.elementToBeClickable(option)).click();
+		} catch (org.openqa.selenium.TimeoutException e) {
+			int visibleOptionCount = getDriver().findElements(USERNAME_OPTIONS).stream()
+					.filter(WebElement::isDisplayed).collect(Collectors.toList()).size();
+			throw new AssertionError("Username '" + username + "' was not available in the open dropdown ("
+					+ visibleOptionCount + " visible options). Check the test fixture or set "
+					+ "-Dkyc.superadmin.testUsername to an available user.", e);
+		}
+		return this;
+	}
+
+	private List<WebElement> visibleUsernameOptions(String username) {
+		return getDriver().findElements(USERNAME_OPTIONS).stream()
+				.filter(option -> {
+					try {
+						return option.isDisplayed() && username.equals(option.getText().trim());
+					} catch (org.openqa.selenium.StaleElementReferenceException ignored) {
+						return false;
+					}
+				})
+				.collect(Collectors.toList());
 	}
 
 	public AdminUsersPage_KYCSuperadmin writeService(String text, String input) {

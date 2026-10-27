@@ -14,11 +14,11 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import com.ui.utilities.BrowserUtility;
+import com.ui.utilities.RekycNavigationUtility;
 
 public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtility {
 
 	private static final Duration TIMEOUT = Duration.ofSeconds(30);
-
 
 	private static final By PAGE_HEADING = By.xpath("//h2[text()='Upload Document']");
 
@@ -37,11 +37,9 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 
 	private static final By VERIFY_PASSWORD = By.xpath("//button[normalize-space()='Verify Password']");
 
-
 	private static final By NEXT_BUTTON = By.xpath("//button[normalize-space()='Next']");
 
 	private static final By PREVIOUS_BUTTON = By.xpath("//button[normalize-space()='Previous']");
-
 
 	private static final By DOCUMENT_PREVIEW = By
 			.xpath("//*[@role='dialog' and " + ".//*[normalize-space()='Document Preview']]");
@@ -55,7 +53,7 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 			"//*[@id='final_submission_confirmation']" + "//button[normalize-space()='Review previous section']");
 
 	private static final By VALIDATION_ERROR = By.id("validationErrorPopup");
-	
+
 	private static final By HEADING_POPUPSCREEN = By.xpath("//h2[@id='final_submission_title']");
 	private static final By REVIEWANDCONFIRMBUTTON_POPUPSCREEN = By.xpath("//button[@id='confirm_final_submission']");
 
@@ -67,13 +65,11 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 		return new WebDriverWait(getDriver(), TIMEOUT);
 	}
 
-
 	public boolean isDisplayed() {
 		return waitFor().until(ExpectedConditions.visibilityOfElementLocated(PAGE_HEADING)).isDisplayed();
 	}
-	
-	public boolean isPopupHeadingDisplayed()
-	{
+
+	public boolean isPopupHeadingDisplayed() {
 		return waitFor().until(ExpectedConditions.visibilityOfElementLocated(HEADING_POPUPSCREEN)).isDisplayed();
 	}
 
@@ -84,7 +80,6 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 	public boolean isPanDocumentDisplayed() {
 		return waitFor().until(ExpectedConditions.visibilityOfElementLocated(PAN_DOCUMENT)).isDisplayed();
 	}
-
 
 	public boolean isPanDocumentUploaded() {
 		return getDriver().findElements(UPLOADED_STATUS).stream().anyMatch(WebElement::isDisplayed);
@@ -128,7 +123,6 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 		return this;
 	}
 
-
 	public DocumentPage_AnnualIncomeModificationRekycUAT openDocumentPreview() {
 
 		click(SHOW_PREVIEW);
@@ -141,7 +135,6 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 	public boolean isDocumentPreviewDisplayed() {
 		return getDriver().findElements(DOCUMENT_PREVIEW).stream().anyMatch(WebElement::isDisplayed);
 	}
-
 
 	public DocumentPage_AnnualIncomeModificationRekycUAT enterDocumentPassword(String password) {
 
@@ -158,7 +151,6 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 		click(VERIFY_PASSWORD);
 		return this;
 	}
-
 
 	public DocumentPage_AnnualIncomeModificationRekycUAT openFinalSubmissionConfirmation() {
 
@@ -189,7 +181,6 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 		return this;
 	}
 
-
 	public DocumentPage_AnnualIncomeModificationRekycUAT goBackToPreviousPage() {
 
 		String originalUrl = getDriver().getCurrentUrl();
@@ -201,11 +192,9 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 		return this;
 	}
 
-
 	public boolean isValidationErrorDisplayed() {
 		return getDriver().findElements(VALIDATION_ERROR).stream().anyMatch(WebElement::isDisplayed);
 	}
-
 
 	private void click(By locator) {
 
@@ -220,13 +209,20 @@ public class DocumentPage_AnnualIncomeModificationRekycUAT extends BrowserUtilit
 			throw new IllegalStateException("Element click intercepted: " + locator, e);
 		}
 	}
-	
-	public DocumentPage_AnnualIncomeModificationRekycUAT clickOnConfirmButton()
-	{
-		
+
+	public DocumentPage_AnnualIncomeModificationRekycUAT clickOnConfirmButton() {
+
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
-		WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(REVIEWANDCONFIRMBUTTON_POPUPSCREEN));
+		WebElement element = wait
+				.until(ExpectedConditions.visibilityOfElementLocated(REVIEWANDCONFIRMBUTTON_POPUPSCREEN));
 		element.click();
+		return this;
+	}
+
+	public DocumentPage_AnnualIncomeModificationRekycUAT clickNextToEsign() {
+
+		RekycNavigationUtility.clickNextWithRetry(getDriver(), By.id("next_btn"), "/eSign/page");
+
 		return this;
 	}
 }

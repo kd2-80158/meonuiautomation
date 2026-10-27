@@ -43,7 +43,7 @@ public class KycUserListTest extends BaseTest {
 				"Corporate Re-KYC login page should be displayed");
 	}
 
-	@Test(description = "Verify add user functionality in KYC superadmin", priority = 1)
+	@Test(description = "Verify Demo Capital admin user can be created and deleted by its unique email and mobile", priority = 1)
 	public void verifyAddUserFunctionality_DemoCapital() {
 
 		openKYCSuperadminLoginPage();
@@ -95,10 +95,7 @@ public class KycUserListTest extends BaseTest {
 		        .writeService("name", "Saurabh").writeService("mobile", testUserMobile)
 					.writeService("email_address", testUserEmail).writeService("password", "Saurabh@12345")
 				.clickOnSaveButton()
-					.writeOnUserSearchBar(testUserMobile)
-					.clickOn("action_menu")
-				.clickOn("remove")
-				.clickOn("confirm");
+				.deleteCreatedAdminUser(testUserEmail, testUserMobile);
 
 		softAssert.assertTrue(adminUserPage_DemoCapital.isHeadingVisible("deleteuser_successmsg"), "Deleted");
 		softAssert.assertAll();
