@@ -14,10 +14,11 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.Listeners;
+import com.ui.utilities.RekycNavigationUtility;
 
 import com.ui.utilities.BrowserUtility;
 
-@Listeners({com.ui.listeners.TestListener.class})
+@Listeners({ com.ui.listeners.TestListener.class })
 public class OthersPage_AnnualIncomeModificationRekycUAT extends BrowserUtility {
 
 	private static final Duration TIMEOUT = Duration.ofSeconds(30);
@@ -206,6 +207,13 @@ public class OthersPage_AnnualIncomeModificationRekycUAT extends BrowserUtility 
 		});
 
 		wait.until(ExpectedConditions.elementToBeClickable(NEXT_BUTTON)).click();
+
+		return this;
+	}
+
+	public OthersPage_AnnualIncomeModificationRekycUAT clickOnNextButtonNew() {
+
+		RekycNavigationUtility.clickNextWithRetry(getDriver(), By.id("next_btn"), "/Document/page");
 
 		return this;
 	}

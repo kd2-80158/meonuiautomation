@@ -1,0 +1,14 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="reKYC UAT Auto Push" parallel="false">
+  <test name="Auto Push page-wise UI">
+    <classes>
+      <class name="com.ui.cloud.rekyc.autopush.AutoPushWorkflowTest"/>
+      <class name="com.ui.cloud.rekyc.autopush.AutoPushConfigurationTest"/>
+      <class name="com.ui.cloud.rekyc.autopush.AutoPushEntriesBatchTest"/>
+      <class name="com.ui.cloud.rekyc.autopush.AutoPushBatchMonitorTest"/>
+      <class name="com.ui.cloud.rekyc.autopush.AutoPushApiFeedbackTest"/>
+      <class name="com.ui.cloud.rekyc.autopush.AutoPushEndToEndTest"/>
+      <class name="com.ui.cloud.rekyc.autopush.AutoPushTelemetryTest"/>
+    </classes>
+  </test>
+</suite>

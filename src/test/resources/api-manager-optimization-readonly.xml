@@ -1,0 +1,7 @@
+<suite name="API Manager optimization read-only surface checks" parallel="false">
+  <test name="Optimization impact area UI contracts">
+    <classes>
+      <class name="com.ui.cloud.apimanager.optimization.ApiManagerOptimizationReadOnlyTest"/>
+    </classes>
+  </test>
+</suite>

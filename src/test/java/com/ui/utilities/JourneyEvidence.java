@@ -40,7 +40,7 @@ public final class JourneyEvidence {
 	public JourneyEvidence(WebDriver driver, String testName) {
 		this.driver = driver;
 		ExtentTest parent = ExtentReporterUtility.getTest();
-		this.reportNode = parent == null ? null : parent.createNode("Journey evidence - PDF generation");
+		this.reportNode = parent == null ? null : parent.createNode("Journey evidence");
 		String safeName = testName.replaceAll("[^a-zA-Z0-9_-]", "_");
 		String runName = safeName + "_" + LocalDateTime.now().format(RUN_TIME);
 		this.relativeDirectory = "evidence/" + runName;

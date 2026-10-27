@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.Listeners;
@@ -82,7 +83,8 @@ public class LoginPage_CorporateRekycUAT extends BrowserUtility {
 
 	/** Waits for either a successful route change or a visible server-side login error. */
 	public boolean waitForPersonalPageOrLoginError() {
-		new WebDriverWait(getDriver(), Duration.ofSeconds(30)).until(driver ->
+		new WebDriverWait(getDriver(), Duration.ofSeconds(30))
+				.ignoring(StaleElementReferenceException.class).until(driver ->
 				driver.getCurrentUrl().contains("/Personal/page") || hasVisibleLoginMessage());
 		return getDriver().getCurrentUrl().contains("/Personal/page");
 	}
@@ -90,8 +92,12 @@ public class LoginPage_CorporateRekycUAT extends BrowserUtility {
 	public String getVisibleLoginMessage() {
 		for (By locator : new By[] { ERRORMESSAGE_CLIENTCODE, ERRORMESSAGE_OTP }) {
 			for (WebElement message : getDriver().findElements(locator)) {
-				if (message.isDisplayed() && !message.getText().trim().isEmpty()) {
-					return message.getText().trim();
+				try {
+					if (message.isDisplayed() && !message.getText().trim().isEmpty()) {
+						return message.getText().trim();
+					}
+				} catch (StaleElementReferenceException navigating) {
+					// The login page is being replaced; let the URL wait observe the destination.
 				}
 			}
 		}

@@ -15,8 +15,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.ElementClickInterceptedException;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -121,6 +121,14 @@ public class MakerCheckerPage_MeonTechnologies extends BrowserUtility {
 	public void prepareGeneratedPdfCapture() {
 		((JavascriptExecutor) getDriver()).executeScript(
 				"window.__meonPdfResult = null; window.__meonPdfFetches = [];"
+				+ "if (!window.__meonPdfXhrHooked) { window.__meonPdfXhrHooked = true;"
+				+ "var originalOpen = XMLHttpRequest.prototype.open;"
+				+ "XMLHttpRequest.prototype.open = function(method,url) {"
+				+ "if (String(url).indexOf('/v1/company/generate_pdf/') !== -1) {"
+				+ "this.addEventListener('loadend', function() { var body = null;"
+				+ "try { body = this.responseType === 'json' ? this.response : JSON.parse(this.responseText); } catch(e) {}"
+				+ "window.__meonPdfResult = {httpStatus:this.status, body:body}; }); }"
+				+ "return originalOpen.apply(this, arguments); }; }"
 				+ "jQuery(document).off('ajaxComplete.meonPdfTest').on('ajaxComplete.meonPdfTest', function(e,xhr,settings) {"
 				+ "if (settings.url && settings.url.indexOf('/v1/company/generate_pdf/') !== -1) {"
 				+ "window.__meonPdfResult = {httpStatus:xhr.status, body:xhr.responseJSON || null}; }});"
@@ -165,11 +173,29 @@ public class MakerCheckerPage_MeonTechnologies extends BrowserUtility {
 					return false;
 				}
 				String url = (String) document.get("url");
-				Map<String, Object> proof = new WebDriverWait(getDriver(), Duration.ofSeconds(60)).until(driver -> {
-					Object value = ((JavascriptExecutor) driver).executeScript(
-							"return (window.__meonPdfFetches || []).find(p => new URL(p.url, location.href).href === new URL(arguments[0], location.href).href) || null;", url);
-					return value instanceof Map ? (Map<String, Object>) value : null;
-				});
+				Map<String, Object> proof;
+				try {
+					proof = new WebDriverWait(getDriver(), Duration.ofSeconds(10)).until(driver -> {
+						Object value = ((JavascriptExecutor) driver).executeScript(
+								"return (window.__meonPdfFetches || []).find(p => new URL(p.url, location.href).href === new URL(arguments[0], location.href).href) || null;", url);
+						return value instanceof Map ? (Map<String, Object>) value : null;
+					});
+				} catch (TimeoutException notCaptured) {
+					logger.info("PDF download was not captured by page fetch; checking the document URL response directly");
+					Object value = ((JavascriptExecutor) getDriver()).executeAsyncScript(
+							"var url=arguments[0], done=arguments[arguments.length-1];"
+							+ "fetch(url,{credentials:'same-origin'}).then(function(response){"
+							+ "return response.blob().then(function(blob){if(blob.size>15000000){done({error:'PDF exceeds 15 MB'});return;}"
+							+ "var reader=new FileReader();reader.onload=function(){done({httpStatus:response.status,"
+							+ "mime:blob.type,size:blob.size,base64:String(reader.result).split(',')[1]||''});};"
+							+ "reader.onerror=function(){done({error:'PDF could not be read'});};"
+							+ "reader.readAsDataURL(blob);});}).catch(function(error){done({error:String(error)});});", url);
+					if (!(value instanceof Map) || ((Map<?, ?>) value).containsKey("error")) {
+						logger.error("PDF URL response check failed: {}", value);
+						return false;
+					}
+					proof = (Map<String, Object>) value;
+				}
 				if (((Number) proof.get("httpStatus")).intValue() != 200) {
 					logger.error("Generated PDF fetch returned HTTP {}", proof.get("httpStatus"));
 					return false;
