@@ -103,10 +103,7 @@ public class KycUserListTest extends BaseTest {
 		logger.info("Clicking password Next");
 
 		loginPage.clickOnButton("nextbtn");
-		try {
-			Thread.sleep(15);
-		} catch (InterruptedException e) {
-		}
+		dashboardPage.waitForDashboard();
 		evidence.capture("Superadmin dashboard after sign in");
 		dashboardPage.writeOnSearchBar("DEMO CAPITAL MARKET").clickOnSearchButton_KYCSuperadmin();
 		boolean isCompany = dashboardPage.isTextVisible();
