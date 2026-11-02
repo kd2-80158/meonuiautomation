@@ -7,6 +7,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.Listeners;
@@ -22,6 +23,7 @@ public class LoginPage_CorporateRekycUAT extends BrowserUtility {
 	}
 
 	private static final By CLIENTCODE_INPUTBOX = By.id("clientid"); // xpath->//input[@id='clientid']
+	private static final By BACK_TO_HOME = By.xpath("//a[normalize-space()='Back to Home']");
 	private static final By SENDOTP_BUTTON = By.id("sendotp"); // xpath->//button[@id="sendotp"]
 	private static final By OTP_INPUTBOX = By.id("otpsign"); // xpath->//input[@id='otpsign']
 	private static final By VERIFYANDCONTINUE_BUTTON = By.id("client_signup"); // xpath->//button[@id='client_signup']
@@ -39,6 +41,37 @@ public class LoginPage_CorporateRekycUAT extends BrowserUtility {
 		clientCode.clear();
 		clientCode.sendKeys(cc);
 		return this;
+	}
+
+	public boolean isClientCodeInputReady() {
+		return getDriver().findElements(CLIENTCODE_INPUTBOX).stream()
+				.anyMatch(element -> element.isDisplayed() && element.isEnabled());
+	}
+
+	public boolean isBackToHomeAvailable() {
+		return getDriver().findElements(BACK_TO_HOME).stream()
+				.anyMatch(WebElement::isDisplayed);
+	}
+
+	public LoginPage_CorporateRekycUAT returnToLoginFromBackToHome() {
+		for (int attempt = 1; attempt <= 3; attempt++) {
+			if (isClientCodeInputReady()) {
+				return this;
+			}
+			WebElement back = new WebDriverWait(getDriver(), Duration.ofSeconds(10))
+					.until(ExpectedConditions.elementToBeClickable(BACK_TO_HOME));
+			back.click();
+			try {
+				new WebDriverWait(getDriver(), Duration.ofSeconds(5))
+						.until(driver -> isClientCodeInputReady()
+								|| driver.getCurrentUrl().contains("/Personal/page"));
+				return this;
+			} catch (TimeoutException noTransition) {
+				// Re-locate the anchor before the next attempt.
+			}
+		}
+		throw new IllegalStateException("Back to Home did not open login or Personal after 3 attempts. URL: "
+				+ getDriver().getCurrentUrl());
 	}
 
 	public LoginPage_CorporateRekycUAT clickOnSendOtpButton() {

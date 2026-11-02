@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Marfatia NCD login registration dashboard" parallel="false">
+  <test name="Public and client-side checks">
+    <classes>
+      <class name="com.ui.cloud.ipo.NcdLandingTest"/>
+      <class name="com.ui.cloud.ipo.NcdLoginTest"/>
+      <class name="com.ui.cloud.ipo.NcdRegisterTest"/>
+    </classes>
+  </test>
+</suite>

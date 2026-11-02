@@ -161,7 +161,7 @@ public final class JourneyEvidence {
 		Path video = directory.resolve("journey.mp4");
 		Path encodeLog = directory.resolve("video-encode.log");
 		try {
-			Process process = new ProcessBuilder("ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+			Process process = new ProcessBuilder(ffmpegExecutable(), "-hide_banner", "-loglevel", "error", "-y",
 					"-framerate", "1/2", "-i", "frame-%03d.png", "-c:v", "libx264",
 					"-pix_fmt", "yuv420p", "journey.mp4")
 					.directory(directory.toFile()).redirectErrorStream(true).redirectOutput(encodeLog.toFile()).start();
@@ -189,5 +189,27 @@ public final class JourneyEvidence {
 				reportNode.warning("Video encoding interrupted; screenshots remain attached");
 			}
 		}
+	}
+
+	private String ffmpegExecutable() throws IOException {
+		String configured = System.getProperty("ffmpeg.path");
+		if (configured == null || configured.isBlank()) {
+			configured = System.getenv("FFMPEG_PATH");
+		}
+		if (configured != null && !configured.isBlank()) {
+			Path candidate = Paths.get(configured.trim());
+			if (Files.isRegularFile(candidate) && Files.isExecutable(candidate)) {
+				return candidate.toString();
+			}
+			throw new IOException("Configured ffmpeg executable is missing or not executable: " + candidate);
+		}
+		for (String location : new String[] { "/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg",
+				"/usr/bin/ffmpeg" }) {
+			Path candidate = Paths.get(location);
+			if (Files.isRegularFile(candidate) && Files.isExecutable(candidate)) {
+				return location;
+			}
+		}
+		return "ffmpeg";
 	}
 }

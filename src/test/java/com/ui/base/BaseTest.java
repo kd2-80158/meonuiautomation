@@ -64,7 +64,8 @@ public class BaseTest {
 			chromePreferences.put("profile.password_manager_enabled", false);
 			chromePreferences.put("download.default_directory", downloadDirectory.toString());
 			chromePreferences.put("download.prompt_for_download", false);
-			chromePreferences.put("plugins.always_open_pdf_externally", true);
+			chromePreferences.put("plugins.always_open_pdf_externally",
+					!Boolean.parseBoolean(System.getProperty("meon.pdf.inline", "false")));
 			options.setExperimentalOption("prefs", chromePreferences);
 			LoggingPreferences logging = new LoggingPreferences();
 			logging.enable(LogType.PERFORMANCE, Level.ALL);

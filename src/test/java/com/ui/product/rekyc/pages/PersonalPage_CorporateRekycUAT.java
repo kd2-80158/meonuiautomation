@@ -121,6 +121,7 @@ public class PersonalPage_CorporateRekycUAT extends BrowserUtility {
 	private static final By AUTHORIZED_SIGNATORY_FORM_MODAL = By.id("authorized_signatory_form_popup");
 	private static final By AUTHORIZED_SIGNATORY_FORM_CANCEL = By.id("authorized_signatory_form_cancel");
 	private static final By AUTHORIZED_SIGNATORY_PAN_ERROR = By.id("error_authorized_signatory_pan");
+	private static final By AUTHORIZED_SIGNATORY_DOB_ERROR = By.id("error_authorized_signatory_dob");
 	private static final By FIRST_SIGNATORY_EDIT_MOBILE = By.cssSelector(
 			"#authorized_signatory_list article:first-of-type button[aria-label='Edit mobile number']");
 	private static final By FIRST_SIGNATORY_EDIT_EMAIL = By.cssSelector(
@@ -390,6 +391,17 @@ public class PersonalPage_CorporateRekycUAT extends BrowserUtility {
 		return validation;
 	}
 
+	public String validateInvalidIncorporationDateEdit(String invalidDate) {
+		clickOnButton("editdoi_pd");
+		new WebDriverWait(getDriver(), Duration.ofSeconds(15))
+				.until(ExpectedConditions.visibilityOfElementLocated(EDIT_PERSONAL_MODAL));
+		replaceValue(INPUTBOX_EDITDOI_PERSONALDETAILS, invalidDate);
+		click(UPDATEBUTTON_EDITDOI_PERSONALDETAILS, "incorporation date update");
+		String validation = visibleText(ERROR_EDITDOI_PERSONALDETAILS);
+		click(CANCEL_EDITDOI_PERSONALDETAILS, "incorporation date editor cancel");
+		return validation;
+	}
+
 	public String validateInvalidEmailEdit(String invalidEmail) {
 		openEmailEditor();
 		replaceValue(INPUTBOXFOREMAILID_EDITEMAIL_PERSONALDETAILS, invalidEmail);
@@ -428,6 +440,12 @@ public class PersonalPage_CorporateRekycUAT extends BrowserUtility {
 		replaceValue(PAN_ADDSIGNATORY_AUTHORIZEDSIGNATORY, invalidPan);
 		click(SAVEBUTTON_ADDSIGNATORY_AUTHORIZEDSIGNATORY, "authorized signatory save");
 		return visibleText(AUTHORIZED_SIGNATORY_PAN_ERROR);
+	}
+
+	public String validateInvalidAuthorizedSignatoryDob(String invalidDob) {
+		replaceValue(DOB_ADDSIGNATORY_AUTHORIZEDSIGNATORY, invalidDob);
+		click(SAVEBUTTON_ADDSIGNATORY_AUTHORIZEDSIGNATORY, "authorized signatory save");
+		return visibleText(AUTHORIZED_SIGNATORY_DOB_ERROR);
 	}
 
 	public PersonalPage_CorporateRekycUAT cancelAuthorizedSignatoryIdentityEditor() {

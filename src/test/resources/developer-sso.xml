@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Developer Portal Product SSO" parallel="false">
+  <test name="Critical product SSO redirects">
+    <classes>
+      <class name="com.ui.cloud.developer.sso.DeveloperProductSsoTest"/>
+    </classes>
+  </test>
+</suite>

@@ -128,10 +128,31 @@ public class DocumentPage_CorporateRekycUAT extends BrowserUtility {
 	}
 
 	public DocumentPage_CorporateRekycUAT goBackToPersonalPage() {
-		click(PREVIOUS_BUTTON, "previous");
-		new WebDriverWait(getDriver(), Duration.ofSeconds(30))
-				.until(ExpectedConditions.urlContains("/Personal/page"));
-		return this;
+		for (int attempt = 1; attempt <= 3; attempt++) {
+			if (getDriver().getCurrentUrl().contains("/Personal/page")) {
+				return this;
+			}
+			new WebDriverWait(getDriver(), Duration.ofSeconds(30))
+					.until(ExpectedConditions.invisibilityOfElementLocated(GENERATING_OVERLAY));
+			WebElement previous = new WebDriverWait(getDriver(), Duration.ofSeconds(15))
+					.until(ExpectedConditions.elementToBeClickable(PREVIOUS_BUTTON));
+			((JavascriptExecutor) getDriver()).executeScript(
+					"arguments[0].scrollIntoView({block:'center'});", previous);
+			try {
+				previous.click();
+			} catch (ElementClickInterceptedException intercepted) {
+				((JavascriptExecutor) getDriver()).executeScript("arguments[0].click();", previous);
+			}
+			try {
+				new WebDriverWait(getDriver(), Duration.ofSeconds(5))
+						.until(ExpectedConditions.urlContains("/Personal/page"));
+				return this;
+			} catch (TimeoutException noTransition) {
+				// Re-locate the button on the next attempt; do not reuse a stale element.
+			}
+		}
+		throw new IllegalStateException("Document Previous did not reach Personal after 3 attempts. URL: "
+				+ getDriver().getCurrentUrl());
 	}
 
 	private String visibleText(By locator) {

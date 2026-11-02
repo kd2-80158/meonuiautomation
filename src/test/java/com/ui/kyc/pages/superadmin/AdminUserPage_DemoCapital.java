@@ -237,14 +237,30 @@ public class AdminUserPage_DemoCapital extends BrowserUtility {
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
 		writeOnUserSearchBar(email);
 		wait.until(ExpectedConditions.invisibilityOfElementLocated(LOADING_OVERLAY));
-		WebElement row = wait.until(driver -> findExactAdminUserRow(email, mobile));
-		wait.until(ExpectedConditions.elementToBeClickable(row.findElement(ROW_ACTION_MENU))).click();
-		row = wait.until(driver -> findExactAdminUserRow(email, mobile));
-		wait.until(ExpectedConditions.elementToBeClickable(row.findElement(ROW_REMOVE_OPTION))).click();
+		clickActionInExactRow(wait, email, mobile, ROW_ACTION_MENU);
+		clickActionInExactRow(wait, email, mobile, ROW_REMOVE_OPTION);
 		wait.until(ExpectedConditions.elementToBeClickable(CONFIRM_BUTTON_DIALOGBOX_ADMINPAGE_DEMOCAPITAL)).click();
 		wait.until(ExpectedConditions.visibilityOfElementLocated(HEADING_DELETE_DIALOGBOX_DEMOCAPITAL));
 		wait.until(driver -> findExactAdminUserRow(email, mobile) == null);
 		return this;
+	}
+
+	private void clickActionInExactRow(WebDriverWait wait, String email, String mobile, By action) {
+		wait.until(driver -> {
+			try {
+				WebElement row = findExactAdminUserRow(email, mobile);
+				if (row == null) return false;
+				WebElement button = row.findElement(action);
+				if (!button.isDisplayed() || !button.isEnabled()) return false;
+				button.click();
+				return true;
+			} catch (org.openqa.selenium.StaleElementReferenceException
+					| org.openqa.selenium.ElementClickInterceptedException
+					| org.openqa.selenium.NoSuchElementException ignored) {
+				// Filtering repaints the table; reacquire the row and action on the next poll.
+				return false;
+			}
+		});
 	}
 
 	private WebElement findExactAdminUserRow(String email, String mobile) {
