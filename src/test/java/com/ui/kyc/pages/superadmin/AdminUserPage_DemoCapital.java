@@ -229,15 +229,22 @@ public class AdminUserPage_DemoCapital extends BrowserUtility {
 		return this;
 	}
 
-	/** Search by the unique mobile, then verify all identity fields in one row before deleting. */
-	public AdminUserPage_DemoCapital deleteCreatedAdminUser(String name, String email, String mobile) {
+	/** Search by the unique mobile and confirm all identity fields before any delete action. */
+	public AdminUserPage_DemoCapital findCreatedAdminUser(String name, String email, String mobile) {
 		if (name == null || name.isBlank() || email == null || email.isBlank()
 				|| mobile == null || mobile.isBlank()) {
-			throw new IllegalArgumentException("Created user name, email and mobile are required for deletion");
+			throw new IllegalArgumentException("Created user name, email and mobile are required for lookup");
 		}
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
 		writeOnUserSearchBar(mobile);
 		wait.until(ExpectedConditions.invisibilityOfElementLocated(LOADING_OVERLAY));
+		wait.until(driver -> findExactAdminUserRow(name, email, mobile) != null);
+		return this;
+	}
+
+	/** Delete only the exact user previously confirmed in the filtered table. */
+	public AdminUserPage_DemoCapital deleteCreatedAdminUser(String name, String email, String mobile) {
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
 		wait.until(driver -> findExactAdminUserRow(name, email, mobile) != null);
 		clickActionInExactRow(wait, name, email, mobile, ROW_ACTION_MENU);
 		clickActionInExactRow(wait, name, email, mobile, ROW_REMOVE_OPTION);
