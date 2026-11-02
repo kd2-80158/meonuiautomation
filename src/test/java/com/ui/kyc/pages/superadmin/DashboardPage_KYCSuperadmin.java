@@ -7,6 +7,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -71,15 +72,30 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 	}
 
 	public DashboardPage_KYCSuperadmin clickOnSearchButton_KYCSuperadmin() {
-		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
 		// Some deployments have a Search button; others filter while typing.
+		boolean submitted = false;
 		for (WebElement button : getDriver().findElements(SEARCHBUTTON_KYCDASHBOARD)) {
 			if (button.isDisplayed() && button.isEnabled()) {
 				wait.until(ExpectedConditions.elementToBeClickable(button)).click();
+				submitted = true;
 				break;
 			}
 		}
-		wait.until(ExpectedConditions.visibilityOfElementLocated(COMPANYNAME_TABLE_KYCDASHBOARD));
+		if (!submitted) {
+			logger.info("No Search button is visible; submitting company query with Enter");
+			wait.until(ExpectedConditions.elementToBeClickable(SEARCHBAR_KYCDASHBOARD)).sendKeys(Keys.ENTER);
+		}
+		try {
+			wait.until(ExpectedConditions.visibilityOfElementLocated(COMPANYNAME_TABLE_KYCDASHBOARD));
+		} catch (TimeoutException error) {
+			String query = getDriver().findElement(SEARCHBAR_KYCDASHBOARD).getAttribute("value");
+			String rows = getDriver().findElements(By.cssSelector("table tbody tr")).stream()
+					.limit(5).map(WebElement::getText).reduce((left, right) -> left + " | " + right)
+					.orElse("<no table rows>");
+			throw new IllegalStateException("Company search returned no DEMO CAPITAL MARKET row. URL="
+					+ getDriver().getCurrentUrl() + ", query='" + query + "', first rows=" + rows, error);
+		}
 		return this;
 	}
 
