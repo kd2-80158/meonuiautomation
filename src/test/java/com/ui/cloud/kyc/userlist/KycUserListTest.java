@@ -52,9 +52,9 @@ public class KycUserListTest extends BaseTest {
 
 		String password = JSONUtility.getCredentials().getKycAdmin().getPassword();
 		long uniqueValue = System.currentTimeMillis();
-		String testUserName = "QAAuto" + uniqueValue;
+		String testUserName = "Ram";
 		String testUserMobile = "8" + String.format("%09d", uniqueValue % 1_000_000_000L);
-		String testUserEmail = "saurabhtest+" + uniqueValue + "@gmail.com";
+		String testUserEmail = "ramqa" + uniqueValue + "@gmail.com";
 
 		logger.info("Opening Google Sign In");
 

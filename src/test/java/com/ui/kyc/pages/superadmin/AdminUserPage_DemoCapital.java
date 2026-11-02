@@ -229,14 +229,14 @@ public class AdminUserPage_DemoCapital extends BrowserUtility {
 		return this;
 	}
 
-	/** Search by a unique name, then verify all identity fields in one row before deleting. */
+	/** Search by the unique mobile, then verify all identity fields in one row before deleting. */
 	public AdminUserPage_DemoCapital deleteCreatedAdminUser(String name, String email, String mobile) {
 		if (name == null || name.isBlank() || email == null || email.isBlank()
 				|| mobile == null || mobile.isBlank()) {
 			throw new IllegalArgumentException("Created user name, email and mobile are required for deletion");
 		}
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
-		writeOnUserSearchBar(name);
+		writeOnUserSearchBar(mobile);
 		wait.until(ExpectedConditions.invisibilityOfElementLocated(LOADING_OVERLAY));
 		wait.until(driver -> findExactAdminUserRow(name, email, mobile) != null);
 		clickActionInExactRow(wait, name, email, mobile, ROW_ACTION_MENU);
