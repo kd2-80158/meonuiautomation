@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -27,7 +28,7 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 			.xpath("//a[contains(@href, '/superadmin/email-editor')]");
 	private static final By SEARCHBAR_KYCDASHBOARD = By.cssSelector("input#search__company");
 	private static final By SEARCHBUTTON_KYCDASHBOARD = By.id("search-superadmin-company-btn");
-	private static final By VISITADMINBUTTON_KYCDASHBOARD = By.xpath("(//button[@class='visit-admin'])[1]");
+	private static final By VISITADMINBUTTON_KYCDASHBOARD = By.xpath("//tr[.//td[normalize-space()='DEMO CAPITAL MARKET']]//button[contains(@class,'visit-admin')]");
 	private static final By COMPANYNAME_TABLE_KYCDASHBOARD = By.xpath("//td[normalize-space()='DEMO CAPITAL MARKET']");
 	Logger logger = LoggerUtility.getLogger(this.getClass());
 
@@ -44,6 +45,13 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
 		WebElement button = wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
 		button.click();
+		return this;
+	}
+
+	public DashboardPage_KYCSuperadmin waitForDashboard() {
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(60));
+		wait.until(driver -> driver.getCurrentUrl().contains("/superadmin")
+				&& driver.findElements(SEARCHBAR_KYCDASHBOARD).stream().anyMatch(WebElement::isDisplayed));
 		return this;
 	}
 
@@ -64,42 +72,39 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 
 	public DashboardPage_KYCSuperadmin clickOnSearchButton_KYCSuperadmin() {
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
-		// The current Superadmin UI filters while typing and no longer renders this button.
+		// Some deployments have a Search button; others filter while typing.
 		for (WebElement button : getDriver().findElements(SEARCHBUTTON_KYCDASHBOARD)) {
 			if (button.isDisplayed() && button.isEnabled()) {
 				wait.until(ExpectedConditions.elementToBeClickable(button)).click();
-				return this;
+				break;
 			}
 		}
-		wait.until(ExpectedConditions.elementToBeClickable(SEARCHBAR_KYCDASHBOARD)).sendKeys(Keys.ENTER);
+		wait.until(ExpectedConditions.visibilityOfElementLocated(COMPANYNAME_TABLE_KYCDASHBOARD));
 		return this;
 	}
 
 	public DashboardPage_KYCSuperadmin writeOnSearchBar(String value) {
-
+		waitForDashboard();
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(20));
-
-		WebElement searchBar = wait.until(ExpectedConditions.visibilityOfElementLocated(SEARCHBAR_KYCDASHBOARD));
-
-		JavascriptExecutor js = (JavascriptExecutor) getDriver();
-
-		js.executeScript("arguments[0].scrollIntoView({block:'center', inline:'nearest'});", searchBar);
-
-		wait.until(driver -> searchBar.isDisplayed() && searchBar.isEnabled());
-
-		searchBar.click();
-		searchBar.clear();
-		searchBar.sendKeys(value);
-		wait.until(driver -> value.equals(searchBar.getAttribute("value")));
-		// The current dashboard reacts to framework input/change events rather than
-		// the removed standalone Search button.
-		js.executeScript(
-				"arguments[0].dispatchEvent(new Event('input', {bubbles:true}));"
-						+ "arguments[0].dispatchEvent(new Event('change', {bubbles:true}));"
-						+ "arguments[0].blur();",
-				searchBar);
-
-		return this;
+		wait.ignoring(StaleElementReferenceException.class);
+		for (int attempt = 1; attempt <= 3; attempt++) {
+			WebElement searchBar = wait.until(ExpectedConditions.elementToBeClickable(SEARCHBAR_KYCDASHBOARD));
+			((JavascriptExecutor) getDriver()).executeScript(
+					"arguments[0].scrollIntoView({block:'center', inline:'nearest'});", searchBar);
+			searchBar.click();
+			searchBar.sendKeys(Keys.chord(Keys.CONTROL, "a"));
+			searchBar.sendKeys(value);
+			String actual = getDriver().findElement(SEARCHBAR_KYCDASHBOARD).getAttribute("value");
+			if (value.equalsIgnoreCase(actual == null ? "" : actual.trim())) {
+				logger.info("Company search accepted on attempt {}", attempt);
+				return this;
+			}
+			logger.warn("Company search attempt {} did not persist; current value='{}', URL={}",
+					attempt, actual, getDriver().getCurrentUrl());
+		}
+		throw new IllegalStateException("Company search input did not retain the query on "
+				+ getDriver().getCurrentUrl() + "; current value='"
+				+ getDriver().findElement(SEARCHBAR_KYCDASHBOARD).getAttribute("value") + "'");
 	}
 
 	public DashboardPage_KYCSuperadmin clickOnEmailEditor_KYCSuperadmin() {
