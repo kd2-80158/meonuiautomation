@@ -52,6 +52,7 @@ public class KycUserListTest extends BaseTest {
 
 		String password = JSONUtility.getCredentials().getKycAdmin().getPassword();
 		long uniqueValue = System.currentTimeMillis();
+		String testUserName = "QAAuto" + uniqueValue;
 		String testUserMobile = "8" + String.format("%09d", uniqueValue % 1_000_000_000L);
 		String testUserEmail = "saurabhtest+" + uniqueValue + "@gmail.com";
 
@@ -82,6 +83,10 @@ public class KycUserListTest extends BaseTest {
 		logger.info("Clicking password Next");
 
 		loginPage.clickOnButton("nextbtn");
+		try {
+			Thread.sleep(15);
+		} catch (InterruptedException e) {
+		}
 		dashboardPage.writeOnSearchBar("DEMO CAPITAL MARKET").clickOnSearchButton_KYCSuperadmin();
 		boolean isCompany = dashboardPage.isTextVisible();
 		dashboardPage.clickOnButton("visitadmin_button").switchToNewAdminTab();
@@ -92,10 +97,10 @@ public class KycUserListTest extends BaseTest {
 					+ dashboardPage.isTextVisible());
 		adminUserPage_DemoCapital
 		        .openAddUserFormWithoutModules()
-		        .writeService("name", "Saurabh").writeService("mobile", testUserMobile)
+		        .writeService("name", testUserName).writeService("mobile", testUserMobile)
 					.writeService("email_address", testUserEmail).writeService("password", "Saurabh@12345")
 				.clickOnSaveButton()
-				.deleteCreatedAdminUser(testUserEmail, testUserMobile);
+				.deleteCreatedAdminUser(testUserName, testUserEmail, testUserMobile);
 
 		softAssert.assertTrue(adminUserPage_DemoCapital.isHeadingVisible("deleteuser_successmsg"), "Deleted");
 		softAssert.assertAll();

@@ -229,31 +229,51 @@ public class AdminUserPage_DemoCapital extends BrowserUtility {
 		return this;
 	}
 
-	/** Delete only the admin user created by this test; never rely on row order or another user's name. */
-	public AdminUserPage_DemoCapital deleteCreatedAdminUser(String email, String mobile) {
-		if (email == null || email.isBlank() || mobile == null || mobile.isBlank()) {
-			throw new IllegalArgumentException("Created user email and mobile are required for deletion");
+	/** Search by a unique name, then verify all identity fields in one row before deleting. */
+	public AdminUserPage_DemoCapital deleteCreatedAdminUser(String name, String email, String mobile) {
+		if (name == null || name.isBlank() || email == null || email.isBlank()
+				|| mobile == null || mobile.isBlank()) {
+			throw new IllegalArgumentException("Created user name, email and mobile are required for deletion");
 		}
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
-		writeOnUserSearchBar(email);
+		writeOnUserSearchBar(name);
 		wait.until(ExpectedConditions.invisibilityOfElementLocated(LOADING_OVERLAY));
-		WebElement row = wait.until(driver -> findExactAdminUserRow(email, mobile));
-		wait.until(ExpectedConditions.elementToBeClickable(row.findElement(ROW_ACTION_MENU))).click();
-		row = wait.until(driver -> findExactAdminUserRow(email, mobile));
-		wait.until(ExpectedConditions.elementToBeClickable(row.findElement(ROW_REMOVE_OPTION))).click();
+		wait.until(driver -> findExactAdminUserRow(name, email, mobile) != null);
+		clickActionInExactRow(wait, name, email, mobile, ROW_ACTION_MENU);
+		clickActionInExactRow(wait, name, email, mobile, ROW_REMOVE_OPTION);
 		wait.until(ExpectedConditions.elementToBeClickable(CONFIRM_BUTTON_DIALOGBOX_ADMINPAGE_DEMOCAPITAL)).click();
 		wait.until(ExpectedConditions.visibilityOfElementLocated(HEADING_DELETE_DIALOGBOX_DEMOCAPITAL));
-		wait.until(driver -> findExactAdminUserRow(email, mobile) == null);
+		wait.until(driver -> findExactAdminUserRow(name, email, mobile) == null);
 		return this;
 	}
 
-	private WebElement findExactAdminUserRow(String email, String mobile) {
+	private void clickActionInExactRow(WebDriverWait wait, String name, String email, String mobile, By action) {
+		wait.until(driver -> {
+			try {
+				WebElement row = findExactAdminUserRow(name, email, mobile);
+				if (row == null) return false;
+				WebElement button = row.findElement(action);
+				if (!button.isDisplayed() || !button.isEnabled()) return false;
+				button.click();
+				return true;
+			} catch (org.openqa.selenium.StaleElementReferenceException
+					| org.openqa.selenium.ElementClickInterceptedException
+					| org.openqa.selenium.NoSuchElementException ignored) {
+				// Filtering repaints the table; reacquire the row and action on the next poll.
+				return false;
+			}
+		});
+	}
+
+	private WebElement findExactAdminUserRow(String name, String email, String mobile) {
 		WebElement table = getDriver().findElement(USER_TABLE);
 		for (WebElement row : table.findElements(By.cssSelector("tbody tr"))) {
 			try {
 				java.util.List<WebElement> cells = row.findElements(By.tagName("td"));
-				if (cells.size() >= 3 && mobile.equals(cells.get(1).getText().trim())
-						&& email.equalsIgnoreCase(cells.get(2).getText().trim())) {
+				boolean nameMatches = cells.stream().anyMatch(cell -> name.equalsIgnoreCase(cell.getText().trim()));
+				boolean emailMatches = cells.stream().anyMatch(cell -> email.equalsIgnoreCase(cell.getText().trim()));
+				boolean mobileMatches = cells.stream().anyMatch(cell -> mobile.equals(cell.getText().trim()));
+				if (nameMatches && emailMatches && mobileMatches) {
 					return row;
 				}
 			} catch (org.openqa.selenium.StaleElementReferenceException ignored) {
