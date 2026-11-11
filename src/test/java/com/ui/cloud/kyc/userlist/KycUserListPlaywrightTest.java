@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import org.testng.Assert;
 import org.testng.annotations.Listeners;
@@ -22,9 +23,7 @@ public class KycUserListPlaywrightTest extends BaseTestPW {
 
 	@Test(description = "Playwright: create, find and delete the exact Demo Capital admin user")
 	public void verifyAddUserFunctionality_DemoCapital() throws Exception {
-		String testUserPassword = System.getenv("KYC_TEST_USER_PASSWORD");
-		if (testUserPassword == null || testUserPassword.isBlank())
-			throw new IllegalStateException("KYC_TEST_USER_PASSWORD is required for this account-creation test");
+		String testUserPassword = "Qa!" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
 		evidenceDirectory = Path.of("logs", "evidence", "kyc_add_user_pw_" + Instant.now().toEpochMilli());
 		Files.createDirectories(evidenceDirectory);
 		long unique = System.currentTimeMillis();
