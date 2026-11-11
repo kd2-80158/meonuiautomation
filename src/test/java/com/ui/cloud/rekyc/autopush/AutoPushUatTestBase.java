@@ -38,7 +38,7 @@ public abstract class AutoPushUatTestBase extends BaseTest {
             wait.until(ExpectedConditions.urlContains("/v1/company/companies"));
         }
         DashboardPage_REKYCSuperadmin dashboard = new DashboardPage_REKYCSuperadmin(driver);
-        dashboard.clickOn("search").writeService("search", "meon");
+        dashboard.clickOn("search").writeService("search", System.getProperty("autoPush.companySearch", "meon"));
         String superadminHandle = driver.getWindowHandle();
         Set<String> existingHandles = new HashSet<>(driver.getWindowHandles());
         dashboard.clickOn("visitadmin");

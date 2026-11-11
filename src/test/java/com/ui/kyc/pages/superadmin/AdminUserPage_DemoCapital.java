@@ -245,13 +245,28 @@ public class AdminUserPage_DemoCapital extends BrowserUtility {
 	/** Delete only the exact user previously confirmed in the filtered table. */
 	public AdminUserPage_DemoCapital deleteCreatedAdminUser(String name, String email, String mobile) {
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(30));
-		wait.until(driver -> findExactAdminUserRow(name, email, mobile) != null);
+		// The admin table can redraw after the preceding lookup, especially on cloud Firefox.
+		// Reapply the unique filter and reacquire the exact row before each action.
+		writeOnUserSearchBar(mobile);
+		wait.until(ExpectedConditions.invisibilityOfElementLocated(LOADING_OVERLAY));
+		waitForExactAdminUserRow(wait, name, email, mobile);
 		clickActionInExactRow(wait, name, email, mobile, ROW_ACTION_MENU);
 		clickActionInExactRow(wait, name, email, mobile, ROW_REMOVE_OPTION);
 		wait.until(ExpectedConditions.elementToBeClickable(CONFIRM_BUTTON_DIALOGBOX_ADMINPAGE_DEMOCAPITAL)).click();
 		wait.until(ExpectedConditions.visibilityOfElementLocated(HEADING_DELETE_DIALOGBOX_DEMOCAPITAL));
 		wait.until(driver -> findExactAdminUserRow(name, email, mobile) == null);
 		return this;
+	}
+
+	private void waitForExactAdminUserRow(WebDriverWait wait, String name, String email, String mobile) {
+		try {
+			wait.until(driver -> findExactAdminUserRow(name, email, mobile) != null);
+		} catch (org.openqa.selenium.TimeoutException e) {
+			String rows = getDriver().findElement(USER_TABLE).getText();
+			throw new AssertionError("Created admin user not present in filtered table for mobile "
+					+ mobile + ". Search value=" + getDriver().findElement(USER_SEARCHBAR).getAttribute("value")
+					+ "; visible rows=" + rows, e);
+		}
 	}
 
 	private void clickActionInExactRow(WebDriverWait wait, String name, String email, String mobile, By action) {

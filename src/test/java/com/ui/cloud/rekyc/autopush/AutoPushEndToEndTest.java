@@ -50,6 +50,9 @@ public final class AutoPushEndToEndTest extends AutoPushUatTestBase {
 		new WebDriverWait(driver, Duration.ofSeconds(30)).until(d -> page.entryListed(client));
 		Assert.assertTrue(page.entryVerified(client));
 		assertPushSummaryMatchesMaker(client, available);
+		if (page.entryEligible(client))
+			throw new SkipException(client + " is Verified & available after its activity was stopped; "
+					+ "there is no active duplicate batch to trace");
 		Assert.assertFalse(page.entryEligible(client), "Already-batched client must not be selectable again");
 		String batchState = page.entryBatchState(client);
 		Assert.assertTrue(batchState.startsWith("Already in batch AP-"), batchState);

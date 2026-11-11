@@ -12,6 +12,11 @@ public final class AutoPushConfigurationTest extends AutoPushUatTestBase {
 	}
 
 	private void disposableConfig() {
+		if ("modification".equalsIgnoreCase(testWorkflow())
+				&& !Boolean.parseBoolean(System.getProperty("autoPush.allowModificationConfigSave", "false"))) {
+			throw new SkipException("Saving Modification configuration can schedule every verified client; "
+					+ "use an isolated workflow or explicitly set -DautoPush.allowModificationConfigSave=true");
+		}
 		openDisposableWorkflow();
 		page.configuration();
 	}
@@ -256,7 +261,7 @@ public final class AutoPushConfigurationTest extends AutoPushUatTestBase {
 		} finally {
 			disposableConfig();
 			if (!page.pushOrder().equals(original)) {
-				page.moveFirstOperationDown();
+				page.moveSecondOperationUp();
 				Assert.assertEquals(page.pushOrder(), original, "Could not restore original order");
 				page.saveConfiguration();
 			}

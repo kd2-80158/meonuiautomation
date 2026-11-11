@@ -53,10 +53,17 @@ public final class MakerCheckerVerifyPage_AutoPush {
 	}
 
 	public boolean isVerified(String clientCode) {
-		WebElement clientRow = row(clientCode);
-		List<WebElement> verified = clientRow.findElements(By.cssSelector(".maker-nonverify-btn"));
-		if (!verified.isEmpty()) scrollHorizontallyTo(verified.get(0));
-		return !verified.isEmpty();
+		for (int attempt = 0; attempt < 3; attempt++) {
+			try {
+				WebElement clientRow = row(clientCode);
+				List<WebElement> verified = clientRow.findElements(By.cssSelector(".maker-nonverify-btn"));
+				if (!verified.isEmpty()) scrollHorizontallyTo(verified.get(0));
+				return !verified.isEmpty();
+			} catch (StaleElementReferenceException stale) {
+				if (attempt == 2) throw stale;
+			}
+		}
+		return false;
 	}
 
 	public void markVerifiedIfNeeded(String clientCode) {

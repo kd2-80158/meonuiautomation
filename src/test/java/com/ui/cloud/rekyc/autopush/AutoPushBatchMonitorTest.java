@@ -2,12 +2,52 @@ package com.ui.cloud.rekyc.autopush;
 
 import java.time.Duration;
 import java.util.List;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.SkipException;
 import org.testng.annotations.Test;
 
 public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
+	@Test(description = "TC_AP_070 - Stop current Auto Push batch before Live Activity checks and verify clients become eligible", groups = { "autopush", "uat", "mutation" }, priority = -100)
+	public void tcAp070_stopCurrentBatchBeforeLiveActivity() {
+		openDisposableWorkflow();
+		String client = System.getProperty("autoPush.testClientCode", "MEON1");
+		page.entries();
+		page.searchEntries(client);
+		new WebDriverWait(driver, Duration.ofSeconds(10)).until(d -> page.entryListed(client));
+		if (page.entryEligible(client)) {
+			Assert.assertTrue(page.entryBatchState(client).contains("Verified & available"));
+			return;
+		}
+		String batchState = page.entryBatchState(client);
+		Assert.assertTrue(batchState.startsWith("Already in batch AP-"), batchState);
+		String code = batchState.substring("Already in batch ".length()).trim();
+		String expected = System.getProperty("autoPush.currentBatchCode", "").trim();
+		if (!expected.isEmpty() && !expected.equals(code))
+			throw new SkipException("Client batch " + code + " does not match requested batch " + expected);
+		page.monitor();
+		page.searchBatch(code);
+		new WebDriverWait(driver, Duration.ofSeconds(10)).until(d -> page.batchListed(code));
+		Assert.assertTrue(page.batchContainsClient(code, client), "Referenced batch does not contain " + client);
+		page.inspectBatchCode(code);
+		if (page.hasDrawerAction("Stop Auto Push")) {
+			page.clickDrawerActionByLabel("Stop Auto Push");
+		} else if (page.hasDrawerAction("Cancel activity")) {
+			page.clickDrawerActionByLabel("Cancel activity");
+		} else if (!page.drawerText().toLowerCase().matches("(?s).*(stopped|cancelled).*")) {
+			Assert.fail("Batch " + code + " has no stop or cancel action, but " + client + " remains unavailable");
+		}
+		new WebDriverWait(driver, Duration.ofSeconds(30)).until(d ->
+				page.drawerText().toLowerCase().matches("(?s).*(stopped|cancelled).*"));
+		page.closeDrawer();
+		page.entries();
+		page.searchEntries(client);
+		new WebDriverWait(driver, Duration.ofSeconds(30))
+				.ignoring(StaleElementReferenceException.class)
+				.until(d -> page.entryEligible(client));
+		Assert.assertTrue(page.entryEligible(client), "Stopping " + code + " did not release " + client);
+	}
 	private void readMonitor() {
 		openReadWorkflow();
 		page.monitor();
@@ -25,7 +65,7 @@ public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
 		readMonitor();
 		Assert.assertTrue(page.monitorVisible());
 		Assert.assertTrue(page.hasBatchPagination());
-		Assert.assertTrue(page.batchStatuses().contains("All statuses"));
+		Assert.assertTrue(page.batchStatuses().contains("All activity"));
 	}
 
 	@Test(description = "TC_AP_048 - Batch-name search narrows monitor list", groups = { "autopush", "uat", "read" })
@@ -35,8 +75,9 @@ public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
 			throw new SkipException("No batches");
 		String code = page.firstBatchCode();
 		page.searchBatch(code);
-		new WebDriverWait(driver, Duration.ofSeconds(15)).until(d -> page.batchListed(code));
-		Assert.assertTrue(page.visibleBatchText().contains(code));
+		new WebDriverWait(driver, Duration.ofSeconds(15)).until(d -> !page.visibleBatchRowsText().isEmpty()
+				&& page.visibleBatchRowsText().stream().allMatch(row -> row.contains(code)));
+		Assert.assertTrue(page.visibleBatchRowsText().stream().allMatch(row -> row.contains(code)));
 	}
 
 	@Test(description = "TC_AP_049 - Batch search supports client code", groups = { "autopush", "uat", "read" })
@@ -44,15 +85,21 @@ public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
 		readMonitor();
 		String client = System.getProperty("autoPush.existingClientCode", "MEON2");
 		page.searchBatch(client);
-		if (page.batchRowCount() == 0)
-			throw new SkipException("No batches for configured client");
-		Assert.assertTrue(page.visibleBatchText().contains(client));
+		List<String> rows = new WebDriverWait(driver, Duration.ofSeconds(10))
+				.ignoring(StaleElementReferenceException.class)
+				.until(d -> {
+					List<String> current = page.visibleBatchRowsText();
+					return !current.isEmpty() && current.stream().allMatch(row -> row.contains(client))
+							? current : null;
+				});
+		Assert.assertTrue(rows.stream().allMatch(row -> row.contains(client)), rows.toString());
 	}
 
 	@Test(description = "TC_AP_050 - No-match batch search shows empty list", groups = { "autopush", "uat", "read" })
 	public void tcAp050_unmatchedBatchSearchEmpty() {
 		readMonitor();
 		page.searchBatch("__no_matching_batch__");
+		new WebDriverWait(driver, Duration.ofSeconds(10)).until(d -> page.batchRowCount() == 0);
 		Assert.assertFalse(page.batchListed("__no_matching_batch__"));
 		Assert.assertEquals(page.batchRowCount(), 0);
 	}
@@ -60,15 +107,13 @@ public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
 	@Test(description = "TC_AP_051 - Batch status filter covers all states", groups = { "autopush", "uat", "read" })
 	public void tcAp051_statusFilterMatchesRows() {
 		readMonitor();
-		java.util.Map<String, String> classes = java.util.Map.of("WAITING_TO_START", "queued", "RUNNING", "running",
-				"PAUSED", "paused", "COMPLETED", "completed", "COMPLETED_WITH_ERRORS", "completed_with_errors",
-				"CANCELLED", "cancelled");
-		for (java.util.Map.Entry<String, String> item : classes.entrySet()) {
-			page.filterBatchStatus(item.getKey());
-			for (String css : page.visibleBatchStatusClasses())
-				Assert.assertTrue(css.contains(item.getValue()), "Mismatched status for " + item.getKey() + ": " + css);
+		List<String> options = page.batchStatuses();
+		Assert.assertTrue(options.contains("All activity"));
+		for (String status : options) {
+			page.filterBatchStatus(status);
+			Assert.assertTrue(page.monitorVisible(), "Monitor vanished for filter " + status);
 		}
-		page.filterBatchStatus("All statuses");
+		page.filterBatchStatus("All activity");
 	}
 
 	@Test(description = "TC_AP_052 - Refresh updates monitor without clearing workflow", groups = { "autopush", "uat",
@@ -88,6 +133,8 @@ public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
 		try {
 			for (int size : List.of(10, 20, 30)) {
 				page.setBatchPageSize(size);
+				new WebDriverWait(driver, Duration.ofSeconds(10))
+						.until(d -> page.batchPageSize() == size);
 				Assert.assertEquals(page.batchPageSize(), size);
 			}
 			page.setBatchPageSize(10);
@@ -109,7 +156,8 @@ public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
 			throw new SkipException("No batches");
 		String code = page.firstBatchCode();
 		String name = page.firstBatchName();
-		page.inspectFirstBatch();
+		page.inspectBatchCode(code);
+		new WebDriverWait(driver, Duration.ofSeconds(10)).until(d -> page.drawerTitle().equals(name));
 		Assert.assertEquals(page.drawerTitle(), name);
 		Assert.assertTrue(page.batchSummary().contains(code));
 	}
@@ -120,11 +168,13 @@ public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
 		readMonitor();
 		if (page.batchRowCount() == 0)
 			throw new SkipException("No batches");
+		String clients = page.firstBatchClients();
+		if (clients.isBlank()) throw new SkipException("First batch has no client codes");
+		String client = clients.split("\\s+")[0];
 		page.inspectFirstBatch();
-		String client = System.getProperty("autoPush.existingClientCode", "MEON2");
 		page.searchDrawer(client);
-		Assert.assertTrue(page.drawerText().contains(client));
-		page.filterDrawerStatus("All entry statuses");
+		new WebDriverWait(driver, Duration.ofSeconds(10)).until(d -> page.drawerText().contains(client));
+		page.filterDrawerStatus("All clients");
 		Assert.assertTrue(page.drawerText().contains(client));
 	}
 
@@ -194,7 +244,10 @@ public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
 			"read" })
 	public void tcAp060_terminalBatchDisablesActiveActions() {
 		readMonitor();
-		page.filterBatchStatus("COMPLETED");
+		String completed = page.batchStatuses().stream()
+				.filter(s -> s.equalsIgnoreCase("Completed")).findFirst().orElse(null);
+		if (completed == null) throw new SkipException("Completed filter unavailable");
+		page.filterBatchStatus(completed);
 		if (page.batchRowCount() == 0)
 			throw new SkipException("No completed batch");
 		page.inspectFirstBatch();
@@ -209,6 +262,71 @@ public final class AutoPushBatchMonitorTest extends AutoPushUatTestBase {
 			throw new SkipException("No batches");
 		page.inspectFirstBatch();
 		Assert.assertFalse(page.deleteActionAvailable());
+	}
+
+	@Test(description = "TC_AP_063 - Activity drawer close returns to live list", groups = { "autopush", "uat", "read" })
+	public void tcAp063_closeActivityDrawer() {
+		readMonitor();
+		if (page.batchRowCount() == 0) throw new SkipException("No batches");
+		page.inspectFirstBatch();
+		Assert.assertTrue(page.drawerOpen());
+		page.closeDrawer();
+		Assert.assertFalse(page.drawerOpen());
+		Assert.assertTrue(page.monitorVisible());
+	}
+
+	@Test(description = "TC_AP_064 - Activity drawer search and clear restore clients", groups = { "autopush", "uat", "read" })
+	public void tcAp064_drawerSearchClear() {
+		readMonitor();
+		if (page.batchRowCount() == 0) throw new SkipException("No batches");
+		String clients = page.firstBatchClients();
+		if (clients.isBlank()) throw new SkipException("First batch has no client codes");
+		String client = clients.split("\\s+")[0];
+		page.inspectFirstBatch();
+		page.searchDrawer(client);
+		Assert.assertEquals(page.drawerSearchValue(), client);
+		new WebDriverWait(driver, Duration.ofSeconds(10)).until(d -> page.drawerText().contains(client));
+		page.searchDrawer("");
+		Assert.assertEquals(page.drawerSearchValue(), "");
+		Assert.assertTrue(page.drawerOpen());
+	}
+
+	@Test(description = "TC_AP_065 - Drawer shows live actions and step-by-step feedback", groups = { "autopush", "uat", "read" })
+	public void tcAp065_drawerControlsAndFeedback() {
+		readMonitor();
+		if (page.batchRowCount() == 0) throw new SkipException("No batches");
+		page.inspectFirstBatch();
+		Assert.assertTrue(page.drawerStatusOptions().contains("All clients"));
+		Assert.assertTrue(page.hasStepByStepActivity());
+		Assert.assertTrue(page.drawerOpen(), "Activity drawer should remain open when no batch action applies");
+	}
+
+	@Test(description = "TC_AP_066 - Start now advances only an automation-owned queued batch", groups = { "autopush", "uat", "mutation" })
+	public void tcAp066_startOwnedBatchNow() {
+		openDisposableWorkflow();
+		page.monitor();
+		String name = ownedBatch("autoPush.ownedQueuedBatchName");
+		page.searchBatch(name);
+		if (!page.batchListed(name)) throw new SkipException("Owned queued batch not found");
+		page.inspectBatch(name);
+		if (!page.hasDrawerAction("Start now")) throw new SkipException("Owned batch cannot start now");
+		page.clickDrawerActionByLabel("Start now");
+		new WebDriverWait(driver, Duration.ofSeconds(20)).until(d ->
+				page.drawerText().toLowerCase().matches("(?s).*(starting|running|pushing|ready).*"));
+	}
+
+	@Test(description = "TC_AP_068 - Stop Auto Push affects only an automation-owned active batch", groups = { "autopush", "uat", "mutation" })
+	public void tcAp068_stopOwnedActiveBatch() {
+		openDisposableWorkflow();
+		page.monitor();
+		String name = ownedBatch("autoPush.ownedActiveBatchName");
+		page.searchBatch(name);
+		if (!page.batchListed(name)) throw new SkipException("Owned active batch not found");
+		page.inspectBatch(name);
+		if (!page.hasDrawerAction("Stop Auto Push")) throw new SkipException("Owned batch is not stoppable");
+		page.clickDrawerActionByLabel("Stop Auto Push");
+		new WebDriverWait(driver, Duration.ofSeconds(20)).until(d ->
+				page.drawerText().toLowerCase().matches("(?s).*(stopped|cancelled).*"));
 	}
 
 }

@@ -158,10 +158,15 @@ public final class AutoPushPage {
 				.map(WebElement::getText).map(String::trim).collect(Collectors.toList());
 	}
 
-	public boolean automaticPushEnabled() { return visible(By.id("apEnabled")).isSelected(); }
+	private static final By AUTO_PUSH_TOGGLE = By.xpath("//input[@type='checkbox' and @id='apEnabled']");
+	public boolean automaticPushEnabled() { return driver.findElement(AUTO_PUSH_TOGGLE).isSelected(); }
 	public void setAutomaticPushEnabled(boolean enabled) {
-		WebElement box = visible(By.id("apEnabled"));
-		if (box.isSelected() != enabled) box.click();
+		WebElement box = driver.findElement(AUTO_PUSH_TOGGLE);
+		if (box.isSelected() != enabled) {
+			((JavascriptExecutor) driver).executeScript("arguments[0].click()", box);
+			if (driver.findElement(AUTO_PUSH_TOGGLE).isSelected() != enabled)
+				throw new IllegalStateException("Automatic Push switch did not change state");
+		}
 	}
 	public boolean autoSelectEnabled() { return visible(By.id("apAutoSelect")).isSelected(); }
 	public void setAutoSelectEnabled(boolean enabled) {
@@ -440,13 +445,19 @@ public final class AutoPushPage {
 				.map(element -> element.getAttribute("class")).collect(Collectors.toList());
 	}
 	public String visibleBatchText() { return visible(By.id("apBatchesBody")).getText(); }
+	public List<String> visibleBatchRowsText() {
+		return driver.findElements(By.cssSelector("#apBatchesBody tr:has(.ap-batch-code)")).stream()
+				.map(WebElement::getText).map(String::trim).collect(Collectors.toList());
+	}
 
-	public int batchRowCount() { return driver.findElements(By.cssSelector("#apBatchesBody tr")).size(); }
+	public int batchRowCount() { return driver.findElements(By.cssSelector("#apBatchesBody tr .ap-batch-code")).size(); }
 	public String firstBatchCode() {
 		return visible(By.cssSelector("#apBatchesBody tr .ap-batch-code")).getText().trim();
 	}
 	public String firstBatchStatus() {
-		return visible(By.cssSelector("#apBatchesBody tr .ap-status-badge")).getText().trim();
+		return new WebDriverWait(driver, Duration.ofSeconds(10))
+				.ignoring(StaleElementReferenceException.class)
+				.until(d -> d.findElement(By.cssSelector("#apBatchesBody tr .ap-status-badge")).getText().trim());
 	}
 	public String firstBatchClients() {
 		return visible(By.cssSelector("#apBatchesBody tr .ap-clientcodes")).getText().trim();
@@ -483,7 +494,31 @@ public final class AutoPushPage {
 	}
 	public String drawerTitle() { return visible(By.id("apDrawerTitle")).getText().trim(); }
 	public String drawerText() { return visible(By.id("apBatchDrawer")).getText(); }
+	public boolean drawerOpen() {
+		return driver.findElements(By.cssSelector("#apBatchDrawer[aria-hidden='false']")).stream()
+				.anyMatch(WebElement::isDisplayed);
+	}
+	public void closeDrawer() {
+		click(By.id("apCloseDrawer"));
+		wait.until(d -> !drawerOpen());
+	}
+	public String drawerClientCardsText() {
+		return driver.findElements(By.cssSelector("#apBatchDrawer .ap-drawer-entry, "
+				+ "#apBatchDrawer .ap-entry-card, #apBatchDrawer [data-client-code]")).stream()
+				.filter(WebElement::isDisplayed).map(WebElement::getText)
+				.collect(Collectors.joining("\n"));
+	}
+	public List<String> drawerStatusOptions() {
+		return new Select(visible(By.id("apDrawerStatus"))).getOptions().stream()
+				.map(WebElement::getText).map(String::trim).collect(Collectors.toList());
+	}
+	public List<String> drawerActionLabels() {
+		return driver.findElements(By.cssSelector("#apDrawerActions button")).stream()
+				.filter(WebElement::isDisplayed).map(WebElement::getText).map(String::trim)
+				.collect(Collectors.toList());
+	}
 	public void searchDrawer(String text) { setField(By.id("apDrawerSearch"), text); }
+	public String drawerSearchValue() { return visible(By.id("apDrawerSearch")).getAttribute("value"); }
 	public void filterDrawerStatus(String status) {
 		new Select(visible(By.id("apDrawerStatus"))).selectByVisibleText(status);
 	}
@@ -518,12 +553,23 @@ public final class AutoPushPage {
 	public void clickDrawerAction(String action) {
 		click(By.cssSelector("#apDrawerActions button[data-action='" + action + "']"));
 	}
+	public void clickDrawerActionByLabel(String label) {
+		click(By.xpath("//*[@id='apDrawerActions']//button[normalize-space()='" + label + "']"));
+	}
 	public boolean deleteActionAvailable() {
 		return !driver.findElements(By.xpath("//*[@id='apBatchDrawer']//button[contains(., 'Delete')]")).isEmpty();
 	}
 	public boolean batchNextEnabled() { return driver.findElement(By.id("apBatchNext")).isEnabled(); }
 	public void nextBatchPage() { click(By.id("apBatchNext")); }
-	public void previousBatchPage() { click(By.id("apBatchPrev")); }
+	public void previousBatchPage() {
+		WebElement button = visible(By.id("apBatchPrev"));
+		((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block:'center'});", button);
+		try { click(By.id("apBatchPrev")); }
+		catch (IllegalStateException blocked) {
+			// Pagination is read-only; Firefox can place the fixed workflow picker above it.
+			((JavascriptExecutor) driver).executeScript("arguments[0].click();", driver.findElement(By.id("apBatchPrev")));
+		}
+	}
 
 	public int batchPageSize() {
 		return Integer

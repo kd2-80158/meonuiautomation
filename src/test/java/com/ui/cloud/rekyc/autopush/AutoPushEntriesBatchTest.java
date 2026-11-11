@@ -58,7 +58,7 @@ public final class AutoPushEntriesBatchTest extends AutoPushUatTestBase {
 
     @Test(description="TC_AP_037 - Select current page selects only eligible rows", groups={"autopush","uat","read"})
     public void tcAp037_selectPageExcludesIneligible() {
-        readEntries(); int eligible=page.eligibleVisibleRowCount(); if(eligible==0) throw new SkipException("No eligible visible entries"); page.selectCurrentEntryPage(); Assert.assertEquals(page.queueSelected(),eligible); page.selectCurrentEntryPage(); Assert.assertEquals(page.queueSelected(),0);
+        readEntries(); int eligible=page.eligibleVisibleRowCount(); if(eligible==0) throw new SkipException("No eligible visible entries; queue reports " + page.queueEligible() + " eligible. Rows: " + page.entryTableText().substring(0, Math.min(500, page.entryTableText().length()))); page.selectCurrentEntryPage(); Assert.assertEquals(page.queueSelected(),eligible); page.selectCurrentEntryPage(); Assert.assertEquals(page.queueSelected(),0);
     }
 
     @Test(description="TC_AP_038 - Queue page size options work", groups={"autopush","uat","read"})
