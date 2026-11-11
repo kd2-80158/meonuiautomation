@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suite name="KYC Demo Capital Playwright" parallel="false">
+  <test name="Create and delete exact admin user">
+    <classes>
+      <class name="com.ui.cloud.kyc.userlist.KycUserListPlaywrightTest"/>
+    </classes>
+  </test>
+</suite>
