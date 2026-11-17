@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Face Finder IPV coordinate audit" parallel="false" verbose="1">
+  <listeners>
+    <listener class-name="com.ui.listeners.TestListener"/>
+  </listeners>
+  <test name="Read-only IPV backend and UI coordinate validation">
+    <classes>
+      <class name="com.ui.cloud.facefinder.ipv.IpvCoordinateAuditTest"/>
+    </classes>
+  </test>
+</suite>

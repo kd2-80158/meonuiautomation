@@ -66,6 +66,53 @@ public final class JourneyEvidence {
 		}
 	}
 
+	/**
+	 * Captures Chrome's full visible window, including the docked DevTools
+	 * Elements panel. Used only by the opt-in local inspection-evidence mode.
+	 */
+	public void captureChromeDevTools(String stepName) {
+		if (!System.getProperty("os.name", "").toLowerCase().contains("mac")) {
+			if (reportNode != null) reportNode.warning("Desktop DevTools capture is available on macOS only");
+			return;
+		}
+		String imageName = String.format("devtools-step-%02d.png", frameCount + 1);
+		Path screenshot = directory.resolve(imageName);
+		try {
+			run("osascript", "-e", "tell application \"Google Chrome\" to activate");
+			Thread.sleep(650L);
+			String bounds = run("osascript", "-e", "tell application \"Google Chrome\" to get bounds of front window");
+			String[] coordinates = bounds.trim().split("\\s*,\\s*");
+			if (coordinates.length != 4) throw new IOException("Unexpected Chrome window bounds: " + bounds);
+			int left = Integer.parseInt(coordinates[0]);
+			int top = Integer.parseInt(coordinates[1]);
+			int right = Integer.parseInt(coordinates[2]);
+			int bottom = Integer.parseInt(coordinates[3]);
+			if (right <= left || bottom <= top) throw new IOException("Invalid Chrome window bounds: " + bounds);
+			run("screencapture", "-x", "-R", left + "," + top + "," + (right - left) + "," + (bottom - top), screenshot.toString());
+			if (!Files.isRegularFile(screenshot) || Files.size(screenshot) == 0) {
+				throw new IOException("Chrome DevTools screenshot was not created");
+			}
+			attachImage(stepName, imageName, screenshot);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("Chrome DevTools capture interrupted", e);
+		} catch (IOException | NumberFormatException e) {
+			throw new IllegalStateException("Cannot capture Chrome DevTools evidence: " + stepName, e);
+		}
+	}
+
+	private static String run(String... command) throws IOException, InterruptedException {
+		Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
+		String output;
+		try (java.io.InputStream input = process.getInputStream()) {
+			output = new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+		}
+		if (!process.waitFor(15, TimeUnit.SECONDS) || process.exitValue() != 0) {
+			throw new IOException("Command failed: " + String.join(" ", command) + " :: " + output.trim());
+		}
+		return output;
+	}
+
 	/** Reopens the downloaded PDF, renders its first page, and attaches that image. */
 	public void attachPdfPreview(Path pdf) {
 		if (pdf == null || !Files.isRegularFile(pdf)) {

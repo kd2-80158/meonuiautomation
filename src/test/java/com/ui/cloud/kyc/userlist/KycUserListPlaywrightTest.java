@@ -39,7 +39,7 @@ public class KycUserListPlaywrightTest extends BaseTestPW {
 			google.locator("#identifierNext").click();
 			google.locator("input[type=password]").fill(JSONUtility.getCredentials().getKycAdmin().getPassword());
 			google.locator("#passwordNext").click();
-			page.locator("#search__company").waitFor();
+			waitForDashboardAfterGoogleSignIn(google);
 			capture(page, "02-dashboard");
 			Locator companySearch = page.locator("#search__company");
 			companySearch.fill(COMPANY);
@@ -82,6 +82,24 @@ public class KycUserListPlaywrightTest extends BaseTestPW {
 			for (Page candidate : page.context().pages()) capture(candidate, "failure-" + candidate.hashCode());
 			throw failure;
 		}
+	}
+
+	private void waitForDashboardAfterGoogleSignIn(Page google) {
+		long deadline = System.currentTimeMillis() + 120_000;
+		boolean challengeCaptured = false;
+		while (System.currentTimeMillis() < deadline) {
+			if (page.locator("#search__company").isVisible()) return;
+			if (!google.isClosed() && !challengeCaptured
+					&& google.locator("body").innerText().contains("Verify it")) {
+				capture(google, "02-google-verification-required");
+				System.out.println("Google verification is required; approve the phone prompt to continue.");
+				challengeCaptured = true;
+			}
+			page.waitForTimeout(500);
+		}
+		throw new AssertionError(challengeCaptured
+				? "Google phone verification was not completed within 120 seconds; dashboard was not reached."
+				: "Google sign-in did not reach the KYC superadmin dashboard within 120 seconds.");
 	}
 
 	private Locator exactUserRow(Page admin, String name, String email, String mobile) {

@@ -92,6 +92,12 @@ public class BaseTest {
 
 			options.addArguments("--window-size=1920,1080");
 
+			// Evidence runs can request Chrome's docked DevTools panel. This is
+			// intentionally opt-in so normal local/cloud suites remain unobtrusive.
+			if (!isHeadless && Boolean.parseBoolean(System.getProperty("meon.open.devtools", "false"))) {
+				options.addArguments("--auto-open-devtools-for-tabs");
+			}
+
 			if (isHeadless) {
 				options.addArguments("--headless=new");
 				if (System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux")) {

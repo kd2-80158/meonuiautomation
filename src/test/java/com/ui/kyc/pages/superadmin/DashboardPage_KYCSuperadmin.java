@@ -29,7 +29,8 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 			.xpath("//a[contains(@href, '/superadmin/email-editor')]");
 	private static final By SEARCHBAR_KYCDASHBOARD = By.cssSelector("input#search__company");
 	private static final By SEARCHBUTTON_KYCDASHBOARD = By.id("search-superadmin-company-btn");
-	private static final By VISITADMINBUTTON_KYCDASHBOARD = By.xpath("//tr[.//td[normalize-space()='DEMO CAPITAL MARKET']]//button[contains(@class,'visit-admin')]");
+	private static final By VISITADMINBUTTON_KYCDASHBOARD = By
+			.xpath("//tr[.//td[normalize-space()='DEMO CAPITAL MARKET']]//button[contains(@class,'visit-admin')]");
 	private static final By COMPANYNAME_TABLE_KYCDASHBOARD = By.xpath("//td[normalize-space()='DEMO CAPITAL MARKET']");
 	Logger logger = LoggerUtility.getLogger(this.getClass());
 
@@ -90,9 +91,8 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 			wait.until(ExpectedConditions.visibilityOfElementLocated(COMPANYNAME_TABLE_KYCDASHBOARD));
 		} catch (TimeoutException error) {
 			String query = getDriver().findElement(SEARCHBAR_KYCDASHBOARD).getAttribute("value");
-			String rows = getDriver().findElements(By.cssSelector("table tbody tr")).stream()
-					.limit(5).map(WebElement::getText).reduce((left, right) -> left + " | " + right)
-					.orElse("<no table rows>");
+			String rows = getDriver().findElements(By.cssSelector("table tbody tr")).stream().limit(5)
+					.map(WebElement::getText).reduce((left, right) -> left + " | " + right).orElse("<no table rows>");
 			throw new IllegalStateException("Company search returned no DEMO CAPITAL MARKET row. URL="
 					+ getDriver().getCurrentUrl() + ", query='" + query + "', first rows=" + rows, error);
 		}
@@ -105,8 +105,8 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 		wait.ignoring(StaleElementReferenceException.class);
 		for (int attempt = 1; attempt <= 3; attempt++) {
 			WebElement searchBar = wait.until(ExpectedConditions.elementToBeClickable(SEARCHBAR_KYCDASHBOARD));
-			((JavascriptExecutor) getDriver()).executeScript(
-					"arguments[0].scrollIntoView({block:'center', inline:'nearest'});", searchBar);
+			((JavascriptExecutor) getDriver())
+					.executeScript("arguments[0].scrollIntoView({block:'center', inline:'nearest'});", searchBar);
 			searchBar.click();
 			searchBar.sendKeys(Keys.chord(Keys.CONTROL, "a"));
 			searchBar.sendKeys(value);
@@ -115,18 +115,64 @@ public class DashboardPage_KYCSuperadmin extends BrowserUtility {
 				logger.info("Company search accepted on attempt {}", attempt);
 				return this;
 			}
-			logger.warn("Company search attempt {} did not persist; current value='{}', URL={}",
-					attempt, actual, getDriver().getCurrentUrl());
+			logger.warn("Company search attempt {} did not persist; current value='{}', URL={}", attempt, actual,
+					getDriver().getCurrentUrl());
 		}
-		throw new IllegalStateException("Company search input did not retain the query on "
-				+ getDriver().getCurrentUrl() + "; current value='"
-				+ getDriver().findElement(SEARCHBAR_KYCDASHBOARD).getAttribute("value") + "'");
+		throw new IllegalStateException(
+				"Company search input did not retain the query on " + getDriver().getCurrentUrl() + "; current value='"
+						+ getDriver().findElement(SEARCHBAR_KYCDASHBOARD).getAttribute("value") + "'");
 	}
 
 	public DashboardPage_KYCSuperadmin clickOnEmailEditor_KYCSuperadmin() {
 		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(15));
 		WebElement email = wait.until(ExpectedConditions.elementToBeClickable(EMAILEDITOR_SIDENAVIGATIONBAR));
 		email.click();
+		return this;
+	}
+
+	public DashboardPage_KYCSuperadmin waitForSearchReady(String expectedValue) {
+
+		WebDriverWait wait = new WebDriverWait(getDriver(), Duration.ofSeconds(20));
+
+		wait.pollingEvery(Duration.ofMillis(200));
+		wait.ignoring(StaleElementReferenceException.class);
+
+		final long[] stableSince = { 0L };
+
+		wait.until(driver -> {
+
+			// Check document readiness
+			String readyState = (String) ((JavascriptExecutor) driver).executeScript("return document.readyState");
+
+			if (!"complete".equals(readyState)) {
+				stableSince[0] = 0L;
+				return false;
+			}
+
+			// Check search input is ready
+			WebElement searchBar = driver.findElement(SEARCHBAR_KYCDASHBOARD);
+
+			String actualValue = searchBar.getAttribute("value");
+
+			boolean inputReady = searchBar.isDisplayed() && searchBar.isEnabled() && actualValue != null
+					&& expectedValue.equalsIgnoreCase(actualValue.trim());
+
+			if (!inputReady) {
+				stableSince[0] = 0L;
+				return false;
+			}
+
+			// Require input and DOM readiness
+			// to remain stable for 800ms
+			if (stableSince[0] == 0L) {
+				stableSince[0] = System.currentTimeMillis();
+			}
+
+			return System.currentTimeMillis() - stableSince[0] >= 800;
+		});
+
+		logger.info("Search DOM and input stabilized for company: {}", expectedValue);
+
 		return this;
 	}
 
