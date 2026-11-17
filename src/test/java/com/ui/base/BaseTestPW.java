@@ -30,7 +30,8 @@ public abstract class BaseTestPW {
 		List<String> args = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux")
 				? List.of("--no-sandbox", "--disable-dev-shm-usage") : List.of();
 		browser = playwright.chromium().launch(new BrowserType.LaunchOptions()
-				.setHeadless(headless).setArgs(args));
+				.setHeadless(headless).setArgs(args)
+				.setChannel(System.getProperty("playwright.browserChannel", "chromium")));
 		page = browser.newPage();
 		page.setDefaultTimeout(30_000);
 	}

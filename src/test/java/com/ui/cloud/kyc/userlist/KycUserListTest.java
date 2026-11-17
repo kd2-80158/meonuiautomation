@@ -43,7 +43,8 @@ public class KycUserListTest extends BaseTest {
 
 	@AfterMethod(alwaysRun = true)
 	public void finishEvidence() {
-		if (evidence == null) return;
+		if (evidence == null)
+			return;
 		try {
 			evidence.capture("Final browser state");
 		} catch (RuntimeException error) {
@@ -105,7 +106,10 @@ public class KycUserListTest extends BaseTest {
 		loginPage.clickOnButton("nextbtn");
 		dashboardPage.waitForDashboard();
 		evidence.capture("Superadmin dashboard after sign in");
-		dashboardPage.writeOnSearchBar("DEMO CAPITAL MARKET").clickOnSearchButton_KYCSuperadmin();
+
+		dashboardPage.writeOnSearchBar("DEMO CAPITAL MARKET").waitForSearchReady("DEMO CAPITAL MARKET")
+				.clickOnSearchButton_KYCSuperadmin();
+
 		boolean isCompany = dashboardPage.isTextVisible();
 		evidence.capture("Demo Capital company result");
 		dashboardPage.clickOnButton("visitadmin_button").switchToNewAdminTab();
@@ -116,12 +120,10 @@ public class KycUserListTest extends BaseTest {
 			throw new RuntimeException("Search functionality is not working--->Required company name returning: "
 					+ dashboardPage.isTextVisible());
 		evidence.capture("Admin Users page before creation");
-		adminUserPage_DemoCapital
-		        .openAddUserFormWithoutModules();
+		adminUserPage_DemoCapital.openAddUserFormWithoutModules();
 		evidence.capture("Add Admin User form");
-		adminUserPage_DemoCapital
-		        .writeService("name", testUserName).writeService("mobile", testUserMobile)
-					.writeService("email_address", testUserEmail).writeService("password", "Saurabh@12345")
+		adminUserPage_DemoCapital.writeService("name", testUserName).writeService("mobile", testUserMobile)
+				.writeService("email_address", testUserEmail).writeService("password", "Saurabh@12345")
 				.clickOnSaveButton();
 		evidence.capture("Admin user save response");
 		adminUserPage_DemoCapital.findCreatedAdminUser(testUserName, testUserEmail, testUserMobile);
