@@ -15,14 +15,13 @@ import com.ui.product.apimanager.pages.LoginPage_APIManager;
 public abstract class ApiManagerAuthenticatedTest extends BaseTest {
     protected final String baseUrl = System.getProperty("apiManager.baseUrl", "https://api.meon.co.in");
 
-    @BeforeClass(alwaysRun = true)
+    @BeforeClass
     public void signInToApiManager() {
         String email = System.getProperty("apiManager.email", "test@meon.co.in");
         String password = System.getProperty("apiManager.password", "test@1234");
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
             throw new SkipException("Set API_MANAGER_EMAIL and API_MANAGER_PASSWORD");
         }
-        setupBrowser();
         driver.get(baseUrl + "/login");
         if (!driver.getCurrentUrl().contains("/dashboard")) {
             new LoginPage_APIManager(driver).writeEmail(email).writePassword(password).clickOnSignInButton();
@@ -33,8 +32,7 @@ public abstract class ApiManagerAuthenticatedTest extends BaseTest {
     @AfterClass(alwaysRun = true)
     public void closeApiManagerBrowser() {
         if (driver != null) {
-            driver.quit();
-            driver = null;
+            try { driver.quit(); } finally { driver = null; browserUtility = null; }
         }
     }
 }

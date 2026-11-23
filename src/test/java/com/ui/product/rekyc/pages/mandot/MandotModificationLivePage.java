@@ -59,7 +59,7 @@ public final class MandotModificationLivePage {
     public WebElement accountToggle() { return visible(ACCOUNT_TOGGLE, By.xpath("//button[contains(@aria-label, 'account details') or contains(., 'Account Details')]")); }
     public WebElement notifications() {
         List<WebElement> visibleNotifications = driver.findElements(NOTIFICATIONS).stream()
-                .filter(WebElement::isDisplayed).toList();
+                .filter(WebElement::isDisplayed).collect(java.util.stream.Collectors.toList());
         if (!visibleNotifications.isEmpty()) return visibleNotifications.get(0);
         // With DevTools docked the top navigation becomes compact. Open the
         // responsive menu before inspecting the same notification control.
