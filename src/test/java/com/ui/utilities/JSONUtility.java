@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.ui.models.CredentialsConfig;
 import com.ui.pojos.AdminURL;
 import com.ui.pojos.Config;
+import com.ui.pojos.DigilockerApaarConfig;
 import com.ui.pojos.WebsiteURL;
 import com.ui.pojos.WorkflowURL;
 
@@ -35,6 +36,12 @@ public class JSONUtility {
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to load or parse config.json at: " + CONFIG_PATH, e);
 		}
+	}
+
+	public static DigilockerApaarConfig getDigilockerApaar() {
+		DigilockerApaarConfig config = loadConfig().getDigilockerApaar();
+		if (config == null) throw new IllegalStateException("digilockerApaar section missing in config/config.json");
+		return config;
 	}
 
 	// ---------- ADMIN ----------

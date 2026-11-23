@@ -5,6 +5,11 @@ import java.util.Map;
 public class Config {
 
     private AdminURL admin;
+    private DigilockerApaarConfig digilockerApaar;
+
+    public DigilockerApaarConfig getDigilockerApaar() {
+        return digilockerApaar;
+    }
     // Specify generics so Gson knows what to instantiate inside the Map
     private Map<String, WorkflowURL> workflowURL;
     private Map<String, WebsiteURL> website;

@@ -107,7 +107,7 @@ public class KycUserListPlaywrightTest extends BaseTestPW {
 		Locator row = admin.locator("#user-table tbody tr")
 				.filter(new Locator.FilterOptions().setHasText(mobile));
 		row.waitFor(new Locator.WaitForOptions().setTimeout(30_000));
-		List<String> cells = row.locator("td").allTextContents().stream().map(String::trim).toList();
+		List<String> cells = row.locator("td").allTextContents().stream().map(String::trim).collect(java.util.stream.Collectors.toList());
 		Assert.assertTrue(cells.stream().anyMatch(name::equalsIgnoreCase), "Name missing: " + cells);
 		Assert.assertTrue(cells.stream().anyMatch(email::equalsIgnoreCase), "Email missing: " + cells);
 		Assert.assertTrue(cells.contains(mobile), "Mobile missing: " + cells);
@@ -122,7 +122,7 @@ public class KycUserListPlaywrightTest extends BaseTestPW {
 			page.waitForTimeout(250);
 		}
 		throw new AssertionError("No page reached " + fragment + "; open URLs="
-				+ page.context().pages().stream().filter(candidate -> !candidate.isClosed()).map(Page::url).toList());
+				+ page.context().pages().stream().filter(candidate -> !candidate.isClosed()).map(Page::url).collect(java.util.stream.Collectors.toList()));
 	}
 
 	private void capture(Page target, String label) {

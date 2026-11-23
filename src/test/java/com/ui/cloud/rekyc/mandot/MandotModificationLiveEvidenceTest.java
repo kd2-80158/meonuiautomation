@@ -283,7 +283,7 @@ public final class MandotModificationLiveEvidenceTest extends BaseTest {
     private List<WebElement> buttonsWithText(String text) {
         return driver.findElements(By.cssSelector("button, a")).stream()
                 .filter(WebElement::isDisplayed)
-                .filter(element -> normalise(element.getText()).equals(normalise(text))).toList();
+                .filter(element -> normalise(element.getText()).equals(normalise(text))).collect(java.util.stream.Collectors.toList());
     }
 
     private boolean isModificationRow(WebElement row) {

@@ -52,7 +52,7 @@ public final class ModificationWorkflowV2Page {
         List<WebElement> close = driver.findElements(By.cssSelector("button[aria-label='Close']"));
         if (close.isEmpty()) {
             close = driver.findElements(By.tagName("button")).stream()
-                    .filter(button -> normalize(button.getText()).equals("close")).toList();
+                    .filter(button -> normalize(button.getText()).equals("close")).collect(java.util.stream.Collectors.toList());
         }
         if (!close.isEmpty()) jsClick(close.get(0)); else new Actions(driver).sendKeys(org.openqa.selenium.Keys.ESCAPE).perform();
         wait.until(d -> !d.findElement(By.tagName("body")).getText().contains("PAGE CONFIGURATION"));
