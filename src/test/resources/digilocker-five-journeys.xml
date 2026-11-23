@@ -2,7 +2,7 @@
 <suite name="DigiLocker five-journey report reconciliation" parallel="false">
   <test name="EILISYS portal journeys and reports">
     <classes>
-      <class name="com.ui.cloud.digilocker.DigilockerFiveJourneysReportTest"/>
+      <class name="com.ui.cloud.digilocker.journeys.DigilockerFiveJourneysReportTest"/>
     </classes>
   </test>
 </suite>

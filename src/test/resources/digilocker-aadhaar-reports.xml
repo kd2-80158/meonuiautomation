@@ -2,7 +2,7 @@
 <suite name="DigiLocker Aadhaar reporting" parallel="false">
   <test name="EILISYS Aadhaar report reconciliation">
     <classes>
-      <class name="com.ui.cloud.digilocker.DigilockerAadhaarReportsTest"/>
+      <class name="com.ui.cloud.digilocker.aadhaar.DigilockerAadhaarReportsTest"/>
     </classes>
   </test>
 </suite>

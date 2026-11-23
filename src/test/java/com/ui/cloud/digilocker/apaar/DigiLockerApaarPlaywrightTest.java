@@ -1,4 +1,4 @@
-package com.ui.cloud.digilocker;
+package com.ui.cloud.digilocker.apaar;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;

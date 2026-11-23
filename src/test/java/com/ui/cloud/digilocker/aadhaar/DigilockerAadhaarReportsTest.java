@@ -1,4 +1,4 @@
-package com.ui.cloud.digilocker;
+package com.ui.cloud.digilocker.aadhaar;
 
 import java.io.IOException;
 import java.net.URI;

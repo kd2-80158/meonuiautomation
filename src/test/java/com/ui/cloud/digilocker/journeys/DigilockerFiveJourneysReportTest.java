@@ -1,4 +1,4 @@
-package com.ui.cloud.digilocker;
+package com.ui.cloud.digilocker.journeys;
 
 import java.time.Duration;
 import java.util.ArrayList;
